@@ -1,36 +1,45 @@
 import { useState } from 'react'
 import {
-  View, TextInput, TouchableOpacity, Image,
+  View, TextInput, TouchableOpacity,
   ActivityIndicator, KeyboardAvoidingView, Platform,
-  ScrollView, StatusBar,
+  ScrollView, StatusBar, Image, Alert,
 } from 'react-native'
 import { Text } from '../components/Text'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useAuth } from '../context/AuthContext'
-import { Eye, EyeOff, ShieldCheck } from 'lucide-react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { AuthStackParamList } from '../navigation/AppNavigator'
+import { post } from '../lib/api'
+import { ArrowLeftIcon } from '../components/icons'
+import { Eye, EyeOff } from 'lucide-react-native'
 
 const LOGO = require('../../assets/ffame_logo.png')
 
-type Props = NativeStackScreenProps<AuthStackParamList, 'Login'>
+type Props = NativeStackScreenProps<AuthStackParamList, 'ResetPassword'>
 
-export default function LoginScreen({ navigation }: Props) {
-  const { login } = useAuth()
+export default function ResetPasswordScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
+  const [token, setToken] = useState('')
+  const [newPassword, setNewPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  async function handleLogin() {
-    if (!email || !password) { setError('Please fill in all fields.'); return }
+  async function handleReset() {
+    if (!token.trim()) { setError('Please enter the reset token from your email.'); return }
+    if (!newPassword)  { setError('Please enter a new password.'); return }
+    if (newPassword.length < 8) { setError('Password must be at least 8 characters.'); return }
     setError('')
     setLoading(true)
-    try { await login(email, password) }
-    catch (e: unknown) { setError(e instanceof Error ? e.message : 'Login failed') }
-    finally { setLoading(false) }
+    try {
+      await post('/auth/reset-password', { token: token.trim(), newPassword })
+      Alert.alert('Password reset', 'Your password has been reset. Please sign in with your new password.', [
+        { text: 'Sign in', onPress: () => navigation.navigate('Login') },
+      ])
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : 'Could not reset password. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (
@@ -38,7 +47,7 @@ export default function LoginScreen({ navigation }: Props) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1, backgroundColor: '#ffffff' }}
     >
-      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
+      <StatusBar barStyle="light-content" backgroundColor="#03397B" />
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: insets.bottom + 32 }}
@@ -55,17 +64,26 @@ export default function LoginScreen({ navigation }: Props) {
 
         {/* Form area */}
         <View style={{ flex: 1, paddingHorizontal: 28, paddingTop: 40 }}>
+          {/* Back button */}
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 24 }}
+          >
+            <ArrowLeftIcon width={14} height={14} stroke="#03397B" />
+            <Text style={{ fontSize: 13, color: '#03397B', fontWeight: '600' }}>Back</Text>
+          </TouchableOpacity>
+
           <Text style={{ fontSize: 26, fontWeight: '800', color: '#0f172a', letterSpacing: -0.5, marginBottom: 6 }}>
-            Welcome back
+            Reset password
           </Text>
-          <Text style={{ fontSize: 14, color: '#64748b', marginBottom: 32 }}>
-            Sign in to access your NHS shifts
+          <Text style={{ fontSize: 14, color: '#64748b', marginBottom: 32, lineHeight: 20 }}>
+            Enter the reset token from your email and choose a new password.
           </Text>
 
-          {/* Email */}
+          {/* Reset token */}
           <View style={{ marginBottom: 16 }}>
             <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 }}>
-              Email address
+              Reset token
             </Text>
             <TextInput
               style={{
@@ -73,20 +91,19 @@ export default function LoginScreen({ navigation }: Props) {
                 paddingHorizontal: 16, fontSize: 15, color: '#0f172a',
                 backgroundColor: '#f8fafc',
               }}
-              placeholder="you@nhs.net"
+              placeholder="Paste token from your email"
               placeholderTextColor="#94a3b8"
-              value={email}
-              onChangeText={t => { setEmail(t); setError('') }}
-              keyboardType="email-address"
+              value={token}
+              onChangeText={t => { setToken(t); setError('') }}
               autoCapitalize="none"
-              autoComplete="email"
+              autoCorrect={false}
             />
           </View>
 
-          {/* Password */}
+          {/* New password */}
           <View style={{ marginBottom: 8 }}>
             <Text style={{ fontSize: 12, fontWeight: '700', color: '#374151', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 8 }}>
-              Password
+              New password
             </Text>
             <View style={{ position: 'relative' }}>
               <TextInput
@@ -95,12 +112,12 @@ export default function LoginScreen({ navigation }: Props) {
                   paddingHorizontal: 16, paddingRight: 48, fontSize: 15, color: '#0f172a',
                   backgroundColor: '#f8fafc',
                 }}
-                placeholder="Enter your password"
+                placeholder="At least 8 characters"
                 placeholderTextColor="#94a3b8"
-                value={password}
-                onChangeText={t => { setPassword(t); setError('') }}
+                value={newPassword}
+                onChangeText={t => { setNewPassword(t); setError('') }}
                 secureTextEntry={!showPw}
-                autoComplete="password"
+                autoComplete="new-password"
               />
               <TouchableOpacity
                 onPress={() => setShowPw(v => !v)}
@@ -114,22 +131,14 @@ export default function LoginScreen({ navigation }: Props) {
             </View>
           </View>
 
-          {/* Forgot password */}
-          <TouchableOpacity
-            onPress={() => navigation.navigate('ForgotPassword')}
-            style={{ alignSelf: 'flex-end', marginTop: 8, marginBottom: 4 }}
-          >
-            <Text style={{ fontSize: 12, color: '#64748b' }}>Forgot password?</Text>
-          </TouchableOpacity>
-
           {/* Error */}
           {error ? (
             <Text style={{ color: '#ef4444', fontSize: 13, marginBottom: 16, marginTop: 4 }}>{error}</Text>
           ) : <View style={{ height: 16 }} />}
 
-          {/* Sign in button */}
+          {/* Reset button */}
           <TouchableOpacity
-            onPress={handleLogin}
+            onPress={handleReset}
             disabled={loading}
             activeOpacity={0.85}
             style={{
@@ -140,26 +149,8 @@ export default function LoginScreen({ navigation }: Props) {
           >
             {loading
               ? <ActivityIndicator color="#ffffff" />
-              : <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '700', letterSpacing: 0.3 }}>Sign in</Text>
+              : <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '700', letterSpacing: 0.3 }}>Reset password</Text>
             }
-          </TouchableOpacity>
-
-          {/* Trust badge */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, padding: 14, backgroundColor: '#f0f9ff', borderWidth: 1, borderColor: '#bae6fd' }}>
-            <ShieldCheck size={15} color="#0369a1" />
-            <Text style={{ fontSize: 12, color: '#0369a1', flex: 1, lineHeight: 18 }}>
-              Access is restricted to verified NHS staff only.
-            </Text>
-          </View>
-
-          {/* Dev shortcut */}
-          <TouchableOpacity
-            onPress={() => { setEmail('hp.nurse@ffame.dev'); setPassword('DevTest123') }}
-            style={{ marginTop: 28, alignSelf: 'center' }}
-          >
-            <Text style={{ fontSize: 12, color: '#94a3b8', textDecorationLine: 'underline' }}>
-              Fill demo credentials
-            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

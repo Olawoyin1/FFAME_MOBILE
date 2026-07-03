@@ -1,8 +1,9 @@
 import { useState } from 'react'
-import { View, TouchableOpacity, ScrollView, StatusBar } from 'react-native'
+import { View, TouchableOpacity, ScrollView, StatusBar, Alert } from 'react-native'
 import { Text } from '../components/Text'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useApplications } from '../lib/hooks/useApplications'
+import { useApplications, withdrawApplication } from '../lib/hooks/useApplications'
+import type { ApiApplication } from '../lib/hooks/useApplications'
 import ScreenState from '../components/ScreenState'
 import { ApplicationsSkeleton } from '../components/Skeleton'
 import { ClockIcon, CheckCircleIcon, CalendarIcon } from '../components/icons'
@@ -20,13 +21,30 @@ const TABS: { key: TabKey; label: string }[] = [
 ]
 
 const STATUS_STYLE: Record<string, { label: string; color: string; bg: string; Icon: any }> = {
-  applied:    { label: 'Pending',    color: '#d97706', bg: '#fef3c7', Icon: ClockIcon        },
-  approved:   { label: 'Approved',   color: '#16a34a', bg: '#dcfce7', Icon: CheckCircleIcon  },
-  assigned:   { label: 'Assigned',   color: '#7c3aed', bg: '#ede9fe', Icon: CheckCircleIcon  },
-  rejected:   { label: 'Rejected',   color: '#dc2626', bg: '#fee2e2', Icon: XCircle      },
-  waitlisted: { label: 'Waitlisted', color: '#64748b', bg: '#f1f5f9', Icon: ClockIcon        },
-  withdrawn:  { label: 'Withdrawn',  color: '#94a3b8', bg: '#f8fafc', Icon: XCircle      },
-  completed:  { label: 'Completed',  color: '#03397B', bg: '#dbeafe', Icon: CheckCircleIcon  },
+  applied:        { label: 'Pending',    color: '#d97706', bg: '#fef3c7', Icon: ClockIcon        },
+  pending_review: { label: 'In Review',  color: '#d97706', bg: '#fef3c7', Icon: ClockIcon        },
+  approved:       { label: 'Approved',   color: '#16a34a', bg: '#dcfce7', Icon: CheckCircleIcon  },
+  assigned:       { label: 'Assigned',   color: '#7c3aed', bg: '#ede9fe', Icon: CheckCircleIcon  },
+  rejected:       { label: 'Rejected',   color: '#dc2626', bg: '#fee2e2', Icon: XCircle          },
+  waitlisted:     { label: 'Waitlisted', color: '#64748b', bg: '#f1f5f9', Icon: ClockIcon        },
+  withdrawn:      { label: 'Withdrawn',  color: '#94a3b8', bg: '#f8fafc', Icon: XCircle          },
+  completed:      { label: 'Completed',  color: '#03397B', bg: '#dbeafe', Icon: CheckCircleIcon  },
+}
+
+/** Statuses that count as "pending" in the applied tab */
+const APPLIED_STATUSES  = new Set(['applied', 'pending_review', 'waitlisted'])
+/** Statuses that count as "rejected" in the rejected tab */
+const REJECTED_STATUSES = new Set(['rejected', 'withdrawn'])
+/** Statuses that can be withdrawn */
+const WITHDRAWABLE       = new Set(['applied', 'pending_review', 'waitlisted'])
+
+function filterForTab(apps: ApiApplication[], tab: TabKey): ApiApplication[] {
+  if (tab === 'all')      return apps
+  if (tab === 'applied')  return apps.filter(a => APPLIED_STATUSES.has(a.status))
+  if (tab === 'approved') return apps.filter(a => a.status === 'approved')
+  if (tab === 'assigned') return apps.filter(a => a.status === 'assigned')
+  if (tab === 'rejected') return apps.filter(a => REJECTED_STATUSES.has(a.status))
+  return apps
 }
 
 function safeFmt(dateStr?: string, fmt = 'EEE d MMM') {
@@ -46,18 +64,49 @@ function shiftHours(start?: string, end?: string): string {
 export default function ApplicationsScreen() {
   const insets = useSafeAreaInsets()
   const [activeTab, setActiveTab] = useState<TabKey>('all')
-  const statusParam = activeTab === 'all' ? undefined : activeTab
-  const { applications, loading, error, refetch } = useApplications({ status: statusParam, limit: 50 })
+  const [withdrawing, setWithdrawing] = useState<string | null>(null)
+
+  // Always fetch ALL applications — filtering is done locally
+  const { applications, loading, error, refetch } = useApplications({ limit: 100 })
 
   if (loading) return <ApplicationsSkeleton />
   if (error)   return <ScreenState error={error} onRetry={refetch} />
 
+  // Compute counts from all fetched applications
   const counts: Record<TabKey, number> = {
-    all:      activeTab === 'all' ? applications.length : 0,
-    applied:  activeTab === 'applied' ? applications.length : 0,
-    approved: activeTab === 'approved' ? applications.length : 0,
-    assigned: activeTab === 'assigned' ? applications.length : 0,
-    rejected: activeTab === 'rejected' ? applications.length : 0,
+    all:      applications.length,
+    applied:  applications.filter(a => APPLIED_STATUSES.has(a.status)).length,
+    approved: applications.filter(a => a.status === 'approved').length,
+    assigned: applications.filter(a => a.status === 'assigned').length,
+    rejected: applications.filter(a => REJECTED_STATUSES.has(a.status)).length,
+  }
+
+  // Filter for the active tab
+  const visibleApps = filterForTab(applications, activeTab)
+
+  async function handleWithdraw(app: ApiApplication) {
+    Alert.alert(
+      'Withdraw Application',
+      'Are you sure you want to withdraw this application?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Withdraw',
+          style: 'destructive',
+          onPress: async () => {
+            setWithdrawing(app._id)
+            try {
+              await withdrawApplication(app._id)
+              await refetch()
+            } catch (err: any) {
+              Alert.alert('Error', err.message ?? 'Could not withdraw application. Please try again.')
+            } finally {
+              setWithdrawing(null)
+            }
+          },
+        },
+      ],
+    )
   }
 
   return (
@@ -105,7 +154,7 @@ export default function ApplicationsScreen() {
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: insets.bottom + 100 }}>
-        {applications.length === 0 ? (
+        {visibleApps.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: 60, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#f1f5f9', marginTop: 8 }}>
             <AlertCircle size={26} color="#cbd5e1" />
             <Text style={{ color: '#0f172a', fontWeight: '700', fontSize: 16, marginTop: 12, marginBottom: 6 }}>No applications yet</Text>
@@ -113,7 +162,7 @@ export default function ApplicationsScreen() {
               Browse available shifts and apply to see them here.
             </Text>
           </View>
-        ) : applications.map(app => {
+        ) : visibleApps.map(app => {
           const s = STATUS_STYLE[app.status] ?? STATUS_STYLE.applied
           const { Icon } = s
           const ward      = app.shiftId?.ward ?? '—'
@@ -123,6 +172,8 @@ export default function ApplicationsScreen() {
           const endTime   = app.shiftId?.endDateTime   ? safeFmt(app.shiftId.endDateTime,   'HH:mm') : ''
           const hrs       = shiftHours(app.shiftId?.startDateTime, app.shiftId?.endDateTime)
           const appliedOn = safeFmt(app.createdAt, 'd MMM yyyy')
+          const canWithdraw = WITHDRAWABLE.has(app.status)
+          const isWithdrawing = withdrawing === app._id
 
           return (
             <View key={app._id} style={{ backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#f1f5f9' }}>
@@ -165,6 +216,27 @@ export default function ApplicationsScreen() {
                 </View>
 
                 <Text style={{ color: '#cbd5e1', fontSize: 11, marginTop: 8 }}>Applied {appliedOn}</Text>
+
+                {/* Withdraw button */}
+                {canWithdraw && (
+                  <TouchableOpacity
+                    onPress={() => handleWithdraw(app)}
+                    disabled={isWithdrawing}
+                    style={{
+                      marginTop: 10,
+                      alignSelf: 'flex-start',
+                      borderWidth: 1,
+                      borderColor: '#ef4444',
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      opacity: isWithdrawing ? 0.5 : 1,
+                    }}
+                  >
+                    <Text style={{ color: '#ef4444', fontSize: 12, fontWeight: '700' }}>
+                      {isWithdrawing ? 'Withdrawing…' : 'Withdraw'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           )

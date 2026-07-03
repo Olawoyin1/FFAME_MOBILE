@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { useFocusEffect } from '@react-navigation/native'
 import { get, patch } from '../api'
 
@@ -53,8 +53,7 @@ export function useApplications(params?: { status?: string; limit?: number }) {
     }
   }, [params?.status, params?.limit])
 
-  useEffect(() => { fetch() }, [fetch])
-  // Re-fetch every time this screen comes into focus (tab switch, back navigation)
+  // Re-fetch every time this screen comes into focus (covers initial mount too)
   useFocusEffect(useCallback(() => { fetch() }, [fetch]))
   return { applications, loading, error, refetch: fetch }
 }
