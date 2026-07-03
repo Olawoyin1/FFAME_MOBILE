@@ -1,4 +1,5 @@
-import { View, TouchableOpacity, ScrollView, StatusBar } from 'react-native'
+import { useState, useCallback } from 'react'
+import { View, TouchableOpacity, ScrollView, StatusBar, RefreshControl } from 'react-native'
 import { Text } from '../components/Text'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useNotifications } from '../lib/hooks/useNotifications'
@@ -31,6 +32,13 @@ function groupLabel(dateStr: string) {
 export default function NotificationsScreen() {
   const insets = useSafeAreaInsets()
   const { notifications, unreadCount, loading, error, refetch, markRead, markAllRead } = useNotifications()
+  const [refreshing, setRefreshing] = useState(false)
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true)
+    await refetch()
+    setRefreshing(false)
+  }, [refetch])
 
   if (loading) return <NotificationsSkeleton />
   if (error)   return <ScreenState error={error} onRetry={refetch} />
@@ -70,7 +78,8 @@ export default function NotificationsScreen() {
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#03397B" colors={['#03397B']} />}>
         <View style={{ padding: 16, gap: 24, paddingBottom: insets.bottom + 100 }}>
           {notifications.length === 0 && (
             <View style={{ alignItems: 'center', paddingVertical: 60, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#f1f5f9' }}>

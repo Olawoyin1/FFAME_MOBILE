@@ -1,4 +1,5 @@
-import { View, ScrollView } from 'react-native'
+import { useState, useCallback } from 'react'
+import { View, ScrollView, RefreshControl } from 'react-native'
 import { Text } from '../components/Text'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -26,6 +27,13 @@ export default function ScheduleScreen() {
   const { user } = useAuth()
   // Assigned and approved shifts are the schedule
   const { applications, loading, error, refetch } = useApplications({ limit: 50 })
+  const [refreshing, setRefreshing] = useState(false)
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true)
+    await refetch()
+    setRefreshing(false)
+  }, [refetch])
 
   if (loading || error) return <ScreenState loading={loading} error={error} onRetry={refetch} />
 
@@ -47,7 +55,8 @@ export default function ScheduleScreen() {
     scheduled.some(a => a.shiftId?.startDateTime && isSameDay(new Date(a.shiftId.startDateTime), day))
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: '#f8fafc' }} showsVerticalScrollIndicator={false}>
+    <ScrollView style={{ flex: 1, backgroundColor: '#f8fafc' }} showsVerticalScrollIndicator={false}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#03397B" colors={['#03397B']} />}>
       {/* Header */}
       <LinearGradient colors={['#003087', '#005EB8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={{ paddingTop: insets.top + 16, paddingBottom: 24, paddingHorizontal: 20 }}>

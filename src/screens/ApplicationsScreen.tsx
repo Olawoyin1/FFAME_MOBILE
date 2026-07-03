@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { View, TouchableOpacity, ScrollView, StatusBar, Alert } from 'react-native'
+import { useState, useCallback } from 'react'
+import { View, TouchableOpacity, ScrollView, StatusBar, Alert, RefreshControl } from 'react-native'
 import { Text } from '../components/Text'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useApplications, withdrawApplication } from '../lib/hooks/useApplications'
@@ -65,9 +65,16 @@ export default function ApplicationsScreen() {
   const insets = useSafeAreaInsets()
   const [activeTab, setActiveTab] = useState<TabKey>('all')
   const [withdrawing, setWithdrawing] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
 
   // Always fetch ALL applications — filtering is done locally
   const { applications, loading, error, refetch } = useApplications({ limit: 100 })
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true)
+    await refetch()
+    setRefreshing(false)
+  }, [refetch])
 
   if (loading) return <ApplicationsSkeleton />
   if (error)   return <ScreenState error={error} onRetry={refetch} />
@@ -153,7 +160,8 @@ export default function ApplicationsScreen() {
         </ScrollView>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: insets.bottom + 100 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ padding: 16, gap: 10, paddingBottom: insets.bottom + 100 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#03397B" colors={['#03397B']} />}>
         {visibleApps.length === 0 ? (
           <View style={{ alignItems: 'center', paddingVertical: 60, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#f1f5f9', marginTop: 8 }}>
             <AlertCircle size={26} color="#cbd5e1" />

@@ -1,4 +1,5 @@
-import { View, TouchableOpacity, ScrollView, Alert, StatusBar, Image } from 'react-native'
+import { useState, useCallback } from 'react'
+import { View, TouchableOpacity, ScrollView, Alert, StatusBar, Image, RefreshControl } from 'react-native'
 import { Text } from '../components/Text'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '../context/AuthContext'
@@ -28,9 +29,16 @@ const TYPE_COLOR: Record<string, string> = {
 export default function HomeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets()
   const { user } = useAuth()
-  const { shifts, loading: shiftsLoading } = useShifts({ status: 'open', limit: 3 })
-  const { applications, loading: appsLoading } = useApplications({ limit: 50 })
-  const { unreadCount } = useNotifications()
+  const { shifts, loading: shiftsLoading, refetch: refetchShifts } = useShifts({ status: 'open', limit: 3 })
+  const { applications, loading: appsLoading, refetch: refetchApps } = useApplications({ limit: 50 })
+  const { unreadCount, refetch: refetchNotifs } = useNotifications()
+  const [refreshing, setRefreshing] = useState(false)
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true)
+    await Promise.all([refetchShifts(), refetchApps(), refetchNotifs()])
+    setRefreshing(false)
+  }, [refetchShifts, refetchApps, refetchNotifs])
 
   if (!user || shiftsLoading || appsLoading) return <HomeSkeleton />
 
@@ -67,6 +75,7 @@ export default function HomeScreen({ navigation }: Props) {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#03397B" colors={['#03397B']} />}
       >
         {/* ── Header ── */}
         <View style={{ backgroundColor: '#03397B', paddingTop: insets.top + 16, paddingHorizontal: 20, paddingBottom: 28 }}>

@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { ScrollView, View, TouchableOpacity, TextInput, Alert, StatusBar } from 'react-native'
+import { useState, useCallback } from 'react'
+import { ScrollView, View, TouchableOpacity, TextInput, Alert, StatusBar, RefreshControl } from 'react-native'
 import { Text } from '../components/Text'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -35,9 +35,16 @@ export default function ShiftsScreen({ navigation }: Props) {
   const [typeFilter, setTypeFilter] = useState('All')
   const [search, setSearch] = useState('')
   const [applyingId, setApplyingId] = useState<string | null>(null)
+  const [refreshing, setRefreshing] = useState(false)
 
   const { shifts, loading, error, refetch } = useShifts({ status: 'open', limit: 50 })
   const { applications, refetch: refetchApps } = useApplications({ limit: 100 })
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true)
+    await Promise.all([refetch(), refetchApps()])
+    setRefreshing(false)
+  }, [refetch, refetchApps])
 
   const appliedShiftIds = new Set(
     applications
@@ -111,7 +118,8 @@ export default function ShiftsScreen({ navigation }: Props) {
         </ScrollView>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#03397B" colors={['#03397B']} />}>
         <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 }}>
           <Text style={{ color: '#94a3b8', fontSize: 13 }}>
             <Text style={{ color: '#03397B', fontWeight: '700' }}>{filtered.length}</Text>

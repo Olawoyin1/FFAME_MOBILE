@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { View } from 'react-native'
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { Icon } from '../components/Icon'
 import {
   HomeIcon, SearchIcon, ApplicationsIcon, BellIcon, ProfileIcon, CalendarIcon,
 } from '../components/icons'
@@ -29,7 +30,7 @@ function NotificationsTabIcon({ color }: { color: string }) {
 
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-      <BellIcon width={ICON_SIZE} height={ICON_SIZE} stroke={color} />
+      <Icon svg={BellIcon} size={ICON_SIZE} color={color} />
       {unread > 0 && (
         <View style={{
           position: 'absolute', top: -3, right: -6,
@@ -175,12 +176,8 @@ function MainTabs() {
             Schedule:     CalendarIcon,
             Profile:      ProfileIcon,
           }
-          const SvgIcon = iconMap[route.name]
-          return SvgIcon ? (
-            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-              <SvgIcon width={ICON_SIZE} height={ICON_SIZE} stroke={color} />
-            </View>
-          ) : null
+          const svg = iconMap[route.name]
+          return svg ? <Icon svg={svg} size={ICON_SIZE} color={color} /> : null
         },
       })}
     >
