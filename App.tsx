@@ -1,20 +1,25 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import './global.css'
+import { SafeAreaProvider } from 'react-native-safe-area-context'
+import { useFonts } from 'expo-font'
+import { AuthProvider } from './src/context/AuthContext'
+import AppNavigator from './src/navigation/AppNavigator'
 
 export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
-}
+  const [fontsLoaded] = useFonts({
+    'GTWalsheim-Light':   require('./assets/font/GT-Walsheim-Light-Trial.otf'),
+    'GTWalsheim-Regular': require('./assets/font/GT-Walsheim-Regular-Trial.otf'),
+    'GTWalsheim-Medium':  require('./assets/font/GT-Walsheim-Medium-Trial.otf'),
+    'GTWalsheim-Bold':    require('./assets/font/GT-Walsheim-Bold-Trial.otf'),
+    'GTWalsheim-Black':   require('./assets/font/GT-Walsheim-Black-Trial.otf'),
+  })
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
+  if (!fontsLoaded) return null
+
+  return (
+    <SafeAreaProvider>
+      <AuthProvider>
+        <AppNavigator />
+      </AuthProvider>
+    </SafeAreaProvider>
+  )
+}
