@@ -93,10 +93,13 @@ export default function HomeScreen({ navigation }: Props) {
           <Text style={{ color: '#ffffff', fontSize: 22, fontWeight: '800', letterSpacing: -0.3, marginBottom: 10 }}>
             {firstName}
           </Text>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: elig.bg, paddingHorizontal: 10, paddingVertical: 4 }}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Compliance')}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', backgroundColor: elig.bg, paddingHorizontal: 10, paddingVertical: 4 }}
+          >
             <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: elig.color }} />
             <Text style={{ color: elig.color, fontSize: 11, fontWeight: '700' }}>{elig.label}</Text>
-          </View>
+          </TouchableOpacity>
         </View>
 
         {/* ── Stats strip ── */}

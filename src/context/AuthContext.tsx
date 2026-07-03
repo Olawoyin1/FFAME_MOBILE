@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { DeviceEventEmitter } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { post } from '../lib/api'
+import { post, get } from '../lib/api'
 
 const STORAGE_KEY = 'ffame_auth'
 const ONBOARDING_KEY = 'ffame_onboarding_done'
@@ -49,14 +49,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     Promise.all([
       AsyncStorage.getItem(STORAGE_KEY),
-    ]).then(([stored]) => {
+      AsyncStorage.getItem(ONBOARDING_KEY),
+    ]).then(([stored, seen]) => {
       if (stored) {
         try {
           const parsed: StoredAuth = JSON.parse(stored)
           setUser(parsed.user)
         } catch { /* corrupt storage */ }
       }
-      setHasSeenOnboarding(false)
+      setHasSeenOnboarding(seen === 'true')
       setLoading(false)
     })
 
@@ -69,6 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function completeOnboarding() {
+    await AsyncStorage.setItem(ONBOARDING_KEY, 'true')
     setHasSeenOnboarding(true)
   }
 
@@ -90,29 +92,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { accessToken, refreshToken, user: apiUser } = res.data
 
-    // Try to fetch the user's profile to enrich with specialty/department/nhsId
+    // Enrich with profile data (specialty/department). Uses apiRequest so it
+    // benefits from the token-refresh logic and correct tenant header.
     let enriched: AuthUser = apiUser
     try {
-      const profileRes = await fetch(
-        'https://ffame-server.onrender.com/api/v1/profiles/me',
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'X-Tenant-ID': apiUser.tenantId,
-          },
-        }
-      )
-      if (profileRes.ok) {
-        const profileJson = await profileRes.json()
-        const p = profileJson.data
-        enriched = {
-          ...apiUser,
-          name: `${p.firstName} ${p.lastName}`.trim() || apiUser.name,
-          specialty: p.specialty,
-          department: p.department,
-        }
+      const profileJson = await get<{ success: boolean; data: { firstName: string; lastName: string; specialty?: string; department?: string } }>('/profiles/me')
+      const p = profileJson.data
+      enriched = {
+        ...apiUser,
+        name: `${p.firstName} ${p.lastName}`.trim() || apiUser.name,
+        specialty: p.specialty,
+        department: p.department,
       }
-    } catch { /* profile fetch is non-blocking */ }
+    } catch { /* profile enrichment is non-blocking */ }
 
     const stored: StoredAuth = { user: enriched, accessToken, refreshToken }
     await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(stored))

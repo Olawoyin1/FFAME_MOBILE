@@ -7,6 +7,7 @@ import type { ShiftsStackParamList } from '../navigation/AppNavigator'
 import { get } from '../lib/api'
 import { applyToShift } from '../lib/hooks/useShifts'
 import type { ApiShift } from '../lib/hooks/useShifts'
+import type { ApiApplication } from '../lib/hooks/useApplications'
 import ScreenState from '../components/ScreenState'
 import { ArrowLeftIcon, ClockIcon, UsersIcon, CheckCircleIcon } from '../components/icons'
 import { FileText } from 'lucide-react-native'
@@ -33,12 +34,23 @@ export default function ShiftDetailScreen({ route, navigation }: Props) {
   const [applying, setApplying] = useState(false)
   const [applied,  setApplied]  = useState(false)
 
-  function fetchShift() {
+  async function fetchShift() {
     setLoading(true); setError(null)
-    get<{ success: boolean; data: ApiShift }>(`/shifts/${shiftId}`)
-      .then(res => setShift(res.data))
-      .catch(err => setError(err.message))
-      .finally(() => setLoading(false))
+    try {
+      const [shiftRes, appsRes] = await Promise.all([
+        get<{ success: boolean; data: ApiShift }>(`/shifts/${shiftId}`),
+        get<{ success: boolean; data: ApiApplication[] }>(`/applications?shiftId=${shiftId}&limit=1`).catch(() => ({ success: false, data: [] as ApiApplication[] })),
+      ])
+      setShift(shiftRes.data)
+      const existingApp = appsRes.data?.[0]
+      if (existingApp && !['withdrawn', 'rejected'].includes(existingApp.status)) {
+        setApplied(true)
+      }
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => { fetchShift() }, [shiftId])
@@ -132,7 +144,7 @@ export default function ShiftDetailScreen({ route, navigation }: Props) {
               ].map((row, i, arr) => (
                 <View key={row.label} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 13, borderBottomWidth: i < arr.length - 1 ? 1 : 0, borderBottomColor: '#f8fafc' }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <row.Icon size={13} color="#94a3b8" />
+                    <row.icon size={13} color="#94a3b8" />
                     <Text style={{ color: '#64748b', fontSize: 13 }}>{row.label}</Text>
                   </View>
                   <Text style={{ color: '#0f172a', fontWeight: '600', fontSize: 13 }}>{row.value}</Text>

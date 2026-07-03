@@ -2,21 +2,59 @@ import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { View } from 'react-native'
+import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import {
-  HomeIcon, SearchIcon, ApplicationsIcon, BellIcon, ProfileIcon,
+  HomeIcon, SearchIcon, ApplicationsIcon, BellIcon, ProfileIcon, CalendarIcon,
 } from '../components/icons'
+import { get } from '../lib/api'
+
+function NotificationsTabIcon({ color }: { color: string }) {
+  const [unread, setUnread] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    async function poll() {
+      try {
+        const res = await get<{ success: boolean; data: unknown[]; meta?: { unreadCount?: number } }>(
+          '/notifications?limit=1',
+        )
+        if (!cancelled) setUnread(res.meta?.unreadCount ?? 0)
+      } catch { /* silent — badge is non-critical */ }
+    }
+    poll()
+    const interval = setInterval(poll, 60_000)
+    return () => { cancelled = true; clearInterval(interval) }
+  }, [])
+
+  return (
+    <View style={{ alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+      <BellIcon width={ICON_SIZE} height={ICON_SIZE} stroke={color} />
+      {unread > 0 && (
+        <View style={{
+          position: 'absolute', top: -3, right: -6,
+          width: 7, height: 7, borderRadius: 4,
+          backgroundColor: '#ef4444', borderWidth: 1.5, borderColor: '#ffffff',
+        }} />
+      )}
+    </View>
+  )
+}
 
 // Screens
 import SplashScreen from '../screens/SplashScreen'
 import OnboardingScreen from '../screens/OnboardingScreen'
 import LoginScreen from '../screens/LoginScreen'
+import ForgotPasswordScreen from '../screens/ForgotPasswordScreen'
+import ResetPasswordScreen from '../screens/ResetPasswordScreen'
 import HomeScreen from '../screens/HomeScreen'
 import ShiftsScreen from '../screens/ShiftsScreen'
 import ShiftDetailScreen from '../screens/ShiftDetailScreen'
 import ApplicationsScreen from '../screens/ApplicationsScreen'
+import ScheduleScreen from '../screens/ScheduleScreen'
 import NotificationsScreen from '../screens/NotificationsScreen'
 import ProfileScreen from '../screens/ProfileScreen'
+import ComplianceScreen from '../screens/ComplianceScreen'
 
 // ── Param lists ──────────────────────────────────────────────
 export type RootStackParamList = {
@@ -27,6 +65,8 @@ export type RootStackParamList = {
 
 export type AuthStackParamList = {
   Login: undefined
+  ForgotPassword: undefined
+  ResetPassword: undefined
 }
 
 export type ShiftsStackParamList = {
@@ -36,12 +76,19 @@ export type ShiftsStackParamList = {
 
 export type HomeStackParamList = {
   HomeMain: undefined
+  Compliance: undefined
+}
+
+export type ProfileStackParamList = {
+  ProfileMain: undefined
+  Compliance: undefined
 }
 
 export type TabParamList = {
   Home: undefined
   Shifts: undefined
   Applications: undefined
+  Schedule: undefined
   Notifications: undefined
   Profile: undefined
 }
@@ -50,6 +97,7 @@ export type TabParamList = {
 const RootStack = createNativeStackNavigator<RootStackParamList>()
 const AuthStack = createNativeStackNavigator<AuthStackParamList>()
 const HomeStackN = createNativeStackNavigator<HomeStackParamList>()
+const ProfileStackN = createNativeStackNavigator<ProfileStackParamList>()
 const ShiftsStack = createNativeStackNavigator<ShiftsStackParamList>()
 const Tab = createBottomTabNavigator<TabParamList>()
 
@@ -58,6 +106,8 @@ function AuthStackScreen() {
   return (
     <AuthStack.Navigator screenOptions={{ headerShown: false }}>
       <AuthStack.Screen name="Login" component={LoginScreen} />
+      <AuthStack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+      <AuthStack.Screen name="ResetPassword" component={ResetPasswordScreen} />
     </AuthStack.Navigator>
   )
 }
@@ -67,7 +117,17 @@ function HomeStackScreen() {
   return (
     <HomeStackN.Navigator screenOptions={{ headerShown: false }}>
       <HomeStackN.Screen name="HomeMain" component={HomeScreen} />
+      <HomeStackN.Screen name="Compliance" component={ComplianceScreen} />
     </HomeStackN.Navigator>
+  )
+}
+
+function ProfileStackScreen() {
+  return (
+    <ProfileStackN.Navigator screenOptions={{ headerShown: false }}>
+      <ProfileStackN.Screen name="ProfileMain" component={ProfileScreen} />
+      <ProfileStackN.Screen name="Compliance" component={ComplianceScreen} />
+    </ProfileStackN.Navigator>
   )
 }
 
@@ -105,24 +165,20 @@ function MainTabs() {
           fontSize: 10, fontWeight: '600', marginTop: 3,
         },
         tabBarIcon: ({ focused, color }) => {
+          if (route.name === 'Notifications') {
+            return <NotificationsTabIcon color={color} />
+          }
           const iconMap: Record<string, React.FC<any>> = {
             Home:         HomeIcon,
             Shifts:       SearchIcon,
             Applications: ApplicationsIcon,
-            Notifications: BellIcon,
+            Schedule:     CalendarIcon,
             Profile:      ProfileIcon,
           }
           const SvgIcon = iconMap[route.name]
           return SvgIcon ? (
-            <View style={{ alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
               <SvgIcon width={ICON_SIZE} height={ICON_SIZE} stroke={color} />
-              {route.name === 'Notifications' && (
-                <View style={{
-                  position: 'absolute', top: -3, right: -6,
-                  width: 7, height: 7, borderRadius: 4,
-                  backgroundColor: '#ef4444', borderWidth: 1.5, borderColor: '#ffffff',
-                }} />
-              )}
             </View>
           ) : null
         },
@@ -131,8 +187,9 @@ function MainTabs() {
       <Tab.Screen name="Home" component={HomeStackScreen} options={{ title: 'Home' }} />
       <Tab.Screen name="Shifts" component={ShiftsStackScreen} options={{ title: 'Shifts' }} />
       <Tab.Screen name="Applications" component={ApplicationsScreen} options={{ title: 'Applications' }} />
-      <Tab.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Alerts' }} />
-      <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: 'Profile' }} />
+      <Tab.Screen name="Schedule" component={ScheduleScreen} options={{ title: 'Schedule' }} />
+      <Tab.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Notifications' }} />
+      <Tab.Screen name="Profile" component={ProfileStackScreen} options={{ title: 'Profile' }} />
     </Tab.Navigator>
   )
 }
