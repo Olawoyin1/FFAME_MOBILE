@@ -6,7 +6,7 @@ import { useApplications, withdrawApplication } from '../lib/hooks/useApplicatio
 import type { ApiApplication } from '../lib/hooks/useApplications'
 import ScreenState from '../components/ScreenState'
 import { ApplicationsSkeleton } from '../components/Skeleton'
-import { ClockIcon, CheckCircleIcon, CalendarIcon } from '../components/icons'
+import { ClockIcon, CheckCircleIcon } from '../components/icons'
 import { XCircle, AlertCircle } from 'lucide-react-native'
 import { format } from 'date-fns'
 
@@ -184,68 +184,50 @@ export default function ApplicationsScreen() {
           const isWithdrawing = withdrawing === app._id
 
           return (
-            <View key={app._id} style={{ backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#f1f5f9' }}>
-              {/* Accent bar */}
-              <View style={{ height: 3, backgroundColor: s.color }} />
-              <View style={{ padding: 14 }}>
-                {/* Ward + status */}
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                  <View style={{ flex: 1, marginRight: 10 }}>
-                    <Text style={{ color: '#0f172a', fontWeight: '800', fontSize: 16, letterSpacing: -0.2 }}>{ward}</Text>
-                    <Text style={{ color: '#64748b', fontSize: 12, marginTop: 2, textTransform: 'capitalize' }}>{role}</Text>
-                  </View>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: s.bg, paddingHorizontal: 10, paddingVertical: 5 }}>
-                    <Icon size={11} color={s.color} />
-                    <Text style={{ color: s.color, fontSize: 11, fontWeight: '700' }}>{s.label}</Text>
-                  </View>
+            <View key={app._id} style={{ backgroundColor: '#ffffff', borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9', padding: 14 }}>
+              {/* Ward + status */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                <View style={{ flex: 1, marginRight: 10 }}>
+                  <Text style={{ color: '#0f172a', fontWeight: '800', fontSize: 16, letterSpacing: -0.2 }}>{ward}</Text>
+                  <Text style={{ color: '#64748b', fontSize: 12, marginTop: 2, textTransform: 'capitalize' }}>{role}</Text>
                 </View>
-
-                <View style={{ height: 1, backgroundColor: '#f1f5f9', marginBottom: 10 }} />
-
-                {/* Date / time */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                    <CalendarIcon width={12} height={12} stroke="#4B5563" />
-                    <Text style={{ color: '#475569', fontSize: 12 }}>{dateStr}</Text>
-                  </View>
-                  {timeStr ? (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                      <ClockIcon width={12} height={12} stroke="#4B5563" />
-                      <Text style={{ color: '#475569', fontSize: 12 }}>
-                        {timeStr}{endTime ? ` – ${endTime}` : ''}
-                      </Text>
-                    </View>
-                  ) : null}
-                  {hrs ? (
-                    <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 3 }}>
-                      <Text style={{ color: '#64748b', fontSize: 11, fontWeight: '700' }}>{hrs}</Text>
-                    </View>
-                  ) : null}
+                <View style={{ backgroundColor: s.bg, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8 }}>
+                  <Text style={{ color: s.color, fontSize: 11, fontWeight: '700' }}>{s.label}</Text>
                 </View>
-
-                <Text style={{ color: '#cbd5e1', fontSize: 11, marginTop: 8 }}>Applied {appliedOn}</Text>
-
-                {/* Withdraw button */}
-                {canWithdraw && (
-                  <TouchableOpacity
-                    onPress={() => handleWithdraw(app)}
-                    disabled={isWithdrawing}
-                    style={{
-                      marginTop: 10,
-                      alignSelf: 'flex-start',
-                      borderWidth: 1,
-                      borderColor: '#ef4444',
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      opacity: isWithdrawing ? 0.5 : 1,
-                    }}
-                  >
-                    <Text style={{ color: '#ef4444', fontSize: 12, fontWeight: '700' }}>
-                      {isWithdrawing ? 'Withdrawing…' : 'Withdraw'}
-                    </Text>
-                  </TouchableOpacity>
-                )}
               </View>
+
+              {/* Date / time */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                  <Text style={{ color: '#94a3b8', fontSize: 11 }}>📅</Text>
+                  <Text style={{ color: '#475569', fontSize: 12, fontWeight: '500' }}>{dateStr}</Text>
+                </View>
+                {timeStr ? (
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                    <Text style={{ color: '#94a3b8', fontSize: 11 }}>🕐</Text>
+                    <Text style={{ color: '#475569', fontSize: 12, fontWeight: '500' }}>
+                      {timeStr}{endTime ? ` – ${endTime}` : ''}
+                    </Text>
+                  </View>
+                ) : null}
+                {hrs ? (
+                  <Text style={{ color: '#00A39D', fontSize: 12, fontWeight: '700' }}>{hrs}</Text>
+                ) : null}
+              </View>
+
+              <Text style={{ color: '#cbd5e1', fontSize: 11, marginTop: 6 }}>Applied {appliedOn}</Text>
+
+              {canWithdraw && (
+                <TouchableOpacity
+                  onPress={() => handleWithdraw(app)}
+                  disabled={isWithdrawing}
+                  style={{ marginTop: 10, alignSelf: 'flex-start', borderWidth: 1, borderColor: '#ef4444', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, opacity: isWithdrawing ? 0.5 : 1 }}
+                >
+                  <Text style={{ color: '#ef4444', fontSize: 12, fontWeight: '700' }}>
+                    {isWithdrawing ? 'Withdrawing…' : 'Withdraw'}
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )
         })}

@@ -130,31 +130,26 @@ export default function ScheduleScreen() {
                 : 0
 
               return (
-                <View key={app._id} style={{ backgroundColor: '#ffffff', borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9', overflow: 'hidden' }}>
-                  <View style={{ flexDirection: 'row' }}>
-                    <View style={{ width: 4, backgroundColor: TYPE_BAR[type] }} />
-                    <View style={{ flex: 1, padding: 14 }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                        <View>
-                          <Text style={{ color: '#0f172a', fontWeight: '800', fontSize: 16 }}>{ward}</Text>
-                          <Text style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>
-                            {app.shiftId.requiredRole?.replace(/_/g, ' ') ?? ''}
-                          </Text>
-                        </View>
-                        <ShiftTypeBadge type={type} />
-                      </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                          <Text style={{ color: '#94a3b8', fontSize: 11 }}>📅</Text>
-                          <Text style={{ color: '#475569', fontSize: 12, fontWeight: '500' }}>{dateFmt}</Text>
-                        </View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                          <Text style={{ color: '#94a3b8', fontSize: 11 }}>🕐</Text>
-                          <Text style={{ color: '#475569', fontSize: 12, fontWeight: '500' }}>{timeFmt}</Text>
-                        </View>
-                        <Text style={{ color: '#00A39D', fontSize: 12, fontWeight: '700' }}>{hrs}h</Text>
-                      </View>
+                <View key={app._id} style={{ backgroundColor: '#ffffff', borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9', padding: 14 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                    <View>
+                      <Text style={{ color: '#0f172a', fontWeight: '800', fontSize: 16 }}>{ward}</Text>
+                      <Text style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>
+                        {app.shiftId.requiredRole?.replace(/_/g, ' ') ?? ''}
+                      </Text>
                     </View>
+                    <ShiftTypeBadge type={type} />
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 11 }}>📅</Text>
+                      <Text style={{ color: '#475569', fontSize: 12, fontWeight: '500' }}>{dateFmt}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 11 }}>🕐</Text>
+                      <Text style={{ color: '#475569', fontSize: 12, fontWeight: '500' }}>{timeFmt}</Text>
+                    </View>
+                    <Text style={{ color: '#00A39D', fontSize: 12, fontWeight: '700' }}>{hrs}h</Text>
                   </View>
                 </View>
               )

@@ -83,8 +83,8 @@ export default function HomeScreen({ navigation }: Props) {
             <Image source={LOGO} style={{ width: 90, height: 28, resizeMode: 'contain', tintColor: '#ffffff' }} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
               <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={{ position: 'relative' }}>
-                <View style={{ width: 38, height: 38, borderRadius: 4, backgroundColor: 'rgba(255,255,255,0.12)', alignItems: 'center', justifyContent: 'center' }}>
-                  <BellIcon width={17} height={17} stroke="#ffffff" strokeWidth={2} />
+                <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255,255,255,0.95)', alignItems: 'center', justifyContent: 'center' }}>
+                  <BellIcon width={17} height={17} stroke="#03397B" strokeWidth={2} />
                 </View>
                 {unreadCount > 0 && (
                   <View style={{ position: 'absolute', top: -3, right: -3, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: '#ef4444', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: '#03397B' }}>
@@ -188,52 +188,65 @@ export default function HomeScreen({ navigation }: Props) {
               {safeShifts.slice(0, 3).map(shift => {
                 const type = getShiftType(shift.startDateTime)
                 const alreadyApplied = appliedShiftIds.has(shift._id)
+                const accentColor = alreadyApplied ? '#16a34a' : (TYPE_COLOR[type] ?? '#03397B')
                 return (
-                  <View key={shift._id} style={{ backgroundColor: '#ffffff', borderWidth: 1, borderColor: alreadyApplied ? '#bbf7d0' : '#f1f5f9' }}>
-                    <View style={{ height: 3, backgroundColor: alreadyApplied ? '#16a34a' : (TYPE_COLOR[type] ?? '#03397B') }} />
-                    <View style={{ padding: 14 }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                        <View style={{ flex: 1, marginRight: 12 }}>
-                          <Text style={{ color: '#0f172a', fontWeight: '700', fontSize: 15 }}>{shift.ward}</Text>
-                          <Text style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>
-                            {format(new Date(shift.startDateTime), 'EEE, d MMM · HH:mm')}
-                          </Text>
-                        </View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                          <UsersIcon width={11} height={11} stroke="#4B5563" />
-                          <Text style={{ color: '#94a3b8', fontSize: 11 }}>
-                            {shift.requiredCount - shift.assignedCount} left
-                          </Text>
-                        </View>
+                  <View key={shift._id} style={{ backgroundColor: '#ffffff', borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9', padding: 14 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                      <View style={{ flex: 1, marginRight: 12 }}>
+                        <Text style={{ color: '#0f172a', fontWeight: '800', fontSize: 16 }}>{shift.ward}</Text>
+                        <Text style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>
+                          {shift.requiredRole?.replace(/_/g, ' ')}
+                        </Text>
                       </View>
-                      <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+                      <View style={{ paddingHorizontal: 10, paddingVertical: 4, backgroundColor: `${accentColor}18`, borderRadius: 8 }}>
+                        <Text style={{ color: accentColor, fontSize: 11, fontWeight: '700' }}>{type}</Text>
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 12 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                        <Text style={{ color: '#94a3b8', fontSize: 11 }}>📅</Text>
+                        <Text style={{ color: '#475569', fontSize: 12, fontWeight: '500' }}>
+                          {format(new Date(shift.startDateTime), 'EEE, d MMM')}
+                        </Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                        <Text style={{ color: '#94a3b8', fontSize: 11 }}>🕐</Text>
+                        <Text style={{ color: '#475569', fontSize: 12, fontWeight: '500' }}>
+                          {format(new Date(shift.startDateTime), 'HH:mm')}
+                        </Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <UsersIcon width={11} height={11} stroke="#4B5563" />
+                        <Text style={{ color: '#94a3b8', fontSize: 11 }}>{shift.requiredCount - shift.assignedCount} left</Text>
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+                      <TouchableOpacity
+                        onPress={() => navigation.navigate('ShiftDetail', { shiftId: shift._id })}
+                        style={{ paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8 }}
+                      >
+                        <Text style={{ color: '#475569', fontSize: 12, fontWeight: '600' }}>Details</Text>
+                      </TouchableOpacity>
+                      {alreadyApplied ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 7, backgroundColor: '#f0fdf4', borderWidth: 1, borderColor: '#bbf7d0', borderRadius: 8 }}>
+                          <CheckCircleIcon width={12} height={12} stroke="#16a34a" />
+                          <Text style={{ color: '#16a34a', fontSize: 12, fontWeight: '700' }}>Applied</Text>
+                        </View>
+                      ) : (
                         <TouchableOpacity
-                          onPress={() => navigation.navigate('Shifts', { screen: 'ShiftDetail', params: { shiftId: shift._id } })}
-                          style={{ paddingHorizontal: 14, paddingVertical: 7, borderWidth: 1, borderColor: '#e2e8f0' }}
+                          style={{ paddingHorizontal: 14, paddingVertical: 7, backgroundColor: '#03397B', borderRadius: 8 }}
+                          onPress={async () => {
+                            try {
+                              await applyToShift(shift._id)
+                              Alert.alert('Applied', 'Your application has been submitted.')
+                            } catch (err: any) {
+                              Alert.alert('Error', err.message || 'Could not apply')
+                            }
+                          }}
                         >
-                          <Text style={{ color: '#475569', fontSize: 12, fontWeight: '600' }}>Details</Text>
+                          <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '700' }}>Apply Now</Text>
                         </TouchableOpacity>
-                        {alreadyApplied ? (
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 14, paddingVertical: 7, backgroundColor: '#f0fdf4', borderWidth: 1, borderColor: '#bbf7d0' }}>
-                            <CheckCircleIcon width={12} height={12} stroke="#16a34a" />
-                            <Text style={{ color: '#16a34a', fontSize: 12, fontWeight: '700' }}>Applied</Text>
-                          </View>
-                        ) : (
-                          <TouchableOpacity
-                            style={{ paddingHorizontal: 14, paddingVertical: 7, backgroundColor: '#03397B' }}
-                            onPress={async () => {
-                              try {
-                                await applyToShift(shift._id)
-                                Alert.alert('Applied', 'Your application has been submitted.')
-                              } catch (err: any) {
-                                Alert.alert('Error', err.message || 'Could not apply')
-                              }
-                            }}
-                          >
-                            <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '700' }}>Apply Now</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
+                      )}
                     </View>
                   </View>
                 )

@@ -2,10 +2,12 @@ import { useState, useCallback } from 'react'
 import { View, TouchableOpacity, ScrollView, StatusBar, RefreshControl } from 'react-native'
 import { Text } from '../components/Text'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import type { NativeStackScreenProps } from '@react-navigation/native-stack'
+import type { HomeStackParamList } from '../navigation/AppNavigator'
 import { useNotifications } from '../lib/hooks/useNotifications'
 import ScreenState from '../components/ScreenState'
 import { NotificationsSkeleton } from '../components/Skeleton'
-import { BellIcon, CheckCircleIcon, ShieldIcon } from '../components/icons'
+import { ArrowLeftIcon, CheckCircleIcon } from '../components/icons'
 import { Info, AlertTriangle, CheckCheck } from 'lucide-react-native'
 import { format, isToday, isYesterday } from 'date-fns'
 
@@ -29,7 +31,9 @@ function groupLabel(dateStr: string) {
   return format(d, 'dd MMM yyyy')
 }
 
-export default function NotificationsScreen() {
+type Props = NativeStackScreenProps<HomeStackParamList, 'Notifications'>
+
+export default function NotificationsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets()
   const { notifications, unreadCount, loading, error, refetch, markRead, markAllRead } = useNotifications()
   const [refreshing, setRefreshing] = useState(false)
@@ -56,6 +60,11 @@ export default function NotificationsScreen() {
 
       {/* Header */}
       <View style={{ backgroundColor: '#03397B', paddingTop: insets.top + 16, paddingBottom: 20, paddingHorizontal: 20 }}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginBottom: 12, alignSelf: 'flex-start' }}>
+          <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center' }}>
+            <ArrowLeftIcon width={18} height={18} stroke="#ffffff" />
+          </View>
+        </TouchableOpacity>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
           <View>
             <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>
