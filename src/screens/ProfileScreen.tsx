@@ -11,7 +11,7 @@ import { useProfile } from '../lib/hooks/useProfile'
 import { useVerificationStatus } from '../lib/hooks/useVerificationStatus'
 import { patch, post } from '../lib/api'
 import { UserIcon, MailIcon, PhoneIcon, LocationIcon, ShieldIcon } from '../components/icons'
-import { Briefcase, Building2, LogOut, Hash, RotateCcw, Eye, EyeOff, ChevronRight, Lock } from 'lucide-react-native'
+import { Briefcase, Building2, LogOut, Hash, RotateCcw, Eye, EyeOff, ChevronRight, Lock, Wallet } from 'lucide-react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { HomeStackParamList } from '../navigation/AppNavigator'
 
@@ -573,6 +573,23 @@ export default function ProfileScreen({ navigation }: Props) {
               <View style={{ flex: 1 }}>
                 <Text style={{ fontSize: 14, fontWeight: '600', color: '#0f172a' }}>My Compliance</Text>
                 <Text style={{ fontSize: 12, color: '#94a3b8', marginTop: 1 }}>View verification & compliance details</Text>
+              </View>
+              <ChevronRight size={16} color="#94a3b8" />
+            </TouchableOpacity>
+          </Section>
+
+          {/* ── My Pay ── */}
+          <Section title="Pay">
+            <TouchableOpacity
+              onPress={() => navigation?.navigate('MyPay')}
+              style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, gap: 12 }}
+            >
+              <View style={{ width: 32, height: 32, backgroundColor: '#eff6ff', alignItems: 'center', justifyContent: 'center' }}>
+                <Wallet size={15} color="#03397B" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 14, fontWeight: '600', color: '#0f172a' }}>My Pay</Text>
+                <Text style={{ fontSize: 12, color: '#94a3b8', marginTop: 1 }}>Shift history, hours & payment status</Text>
               </View>
               <ChevronRight size={16} color="#94a3b8" />
             </TouchableOpacity>

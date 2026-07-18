@@ -10,14 +10,15 @@ import { ClockIcon, CheckCircleIcon, CalendarIcon } from '../components/icons'
 import { XCircle, AlertCircle } from 'lucide-react-native'
 import { format } from 'date-fns'
 
-type TabKey = 'all' | 'applied' | 'approved' | 'assigned' | 'rejected'
+type TabKey = 'all' | 'applied' | 'approved' | 'assigned' | 'completed' | 'rejected'
 
 const TABS: { key: TabKey; label: string }[] = [
-  { key: 'all',      label: 'All'      },
-  { key: 'applied',  label: 'Pending'  },
-  { key: 'approved', label: 'Approved' },
-  { key: 'assigned', label: 'Assigned' },
-  { key: 'rejected', label: 'Rejected' },
+  { key: 'all',       label: 'All'       },
+  { key: 'applied',   label: 'Pending'   },
+  { key: 'approved',  label: 'Approved'  },
+  { key: 'assigned',  label: 'Assigned'  },
+  { key: 'completed', label: 'Completed' },
+  { key: 'rejected',  label: 'Rejected'  },
 ]
 
 const STATUS_STYLE: Record<string, { label: string; color: string; bg: string; Icon: any }> = {
@@ -35,15 +36,20 @@ const STATUS_STYLE: Record<string, { label: string; color: string; bg: string; I
 const APPLIED_STATUSES  = new Set(['applied', 'pending_review', 'waitlisted'])
 /** Statuses that count as "rejected" in the rejected tab */
 const REJECTED_STATUSES = new Set(['rejected', 'withdrawn'])
-/** Statuses that can be withdrawn */
-const WITHDRAWABLE       = new Set(['applied', 'pending_review', 'waitlisted'])
+/**
+ * Statuses that can be withdrawn — matches the backend rule exactly
+ * (application.service.ts withdraw() only blocks ASSIGNED/COMPLETED),
+ * so 'approved' must be withdrawable too, not just 'applied'/'waitlisted'.
+ */
+const WITHDRAWABLE = new Set(['applied', 'pending_review', 'waitlisted', 'approved'])
 
 function filterForTab(apps: ApiApplication[], tab: TabKey): ApiApplication[] {
-  if (tab === 'all')      return apps
-  if (tab === 'applied')  return apps.filter(a => APPLIED_STATUSES.has(a.status))
-  if (tab === 'approved') return apps.filter(a => a.status === 'approved')
-  if (tab === 'assigned') return apps.filter(a => a.status === 'assigned')
-  if (tab === 'rejected') return apps.filter(a => REJECTED_STATUSES.has(a.status))
+  if (tab === 'all')       return apps
+  if (tab === 'applied')   return apps.filter(a => APPLIED_STATUSES.has(a.status))
+  if (tab === 'approved')  return apps.filter(a => a.status === 'approved')
+  if (tab === 'assigned')  return apps.filter(a => a.status === 'assigned')
+  if (tab === 'completed') return apps.filter(a => a.status === 'completed')
+  if (tab === 'rejected')  return apps.filter(a => REJECTED_STATUSES.has(a.status))
   return apps
 }
 
@@ -74,11 +80,12 @@ export default function ApplicationsScreen() {
 
   // Compute counts from all fetched applications
   const counts: Record<TabKey, number> = {
-    all:      applications.length,
-    applied:  applications.filter(a => APPLIED_STATUSES.has(a.status)).length,
-    approved: applications.filter(a => a.status === 'approved').length,
-    assigned: applications.filter(a => a.status === 'assigned').length,
-    rejected: applications.filter(a => REJECTED_STATUSES.has(a.status)).length,
+    all:       applications.length,
+    applied:   applications.filter(a => APPLIED_STATUSES.has(a.status)).length,
+    approved:  applications.filter(a => a.status === 'approved').length,
+    assigned:  applications.filter(a => a.status === 'assigned').length,
+    completed: applications.filter(a => a.status === 'completed').length,
+    rejected:  applications.filter(a => REJECTED_STATUSES.has(a.status)).length,
   }
 
   // Filter for the active tab
@@ -216,6 +223,15 @@ export default function ApplicationsScreen() {
                 </View>
 
                 <Text style={{ color: '#cbd5e1', fontSize: 11, marginTop: 8 }}>Applied {appliedOn}</Text>
+
+                {/* Rejection reason */}
+                {app.status === 'rejected' && (
+                  <Text style={{ color: '#dc2626', fontSize: 12, marginTop: 8, fontWeight: '600', lineHeight: 17 }}>
+                    {app.rejectionReason
+                      ? `Reason: ${app.rejectionReason}`
+                      : 'No reason provided. Contact your ward manager for details.'}
+                  </Text>
+                )}
 
                 {/* Withdraw button */}
                 {canWithdraw && (

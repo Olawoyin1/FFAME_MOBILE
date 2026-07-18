@@ -27,6 +27,7 @@ export interface ApiApplication {
   userId: ApiUser
   status: 'applied' | 'approved' | 'rejected' | 'waitlisted' | 'assigned' | 'withdrawn' | 'completed'
   waitlisted: boolean
+  rejectionReason?: string
   createdAt: string
   updatedAt: string
 }
