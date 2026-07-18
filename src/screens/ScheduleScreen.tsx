@@ -1,4 +1,5 @@
-import { View, ScrollView } from 'react-native'
+import { useState, useCallback } from 'react'
+import { View, ScrollView, RefreshControl } from 'react-native'
 import { Text } from '../components/Text'
 import { LinearGradient } from 'expo-linear-gradient'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
@@ -26,6 +27,13 @@ export default function ScheduleScreen() {
   const { user } = useAuth()
   // Assigned and approved shifts are the schedule
   const { applications, loading, error, refetch } = useApplications({ limit: 50 })
+  const [refreshing, setRefreshing] = useState(false)
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true)
+    await refetch()
+    setRefreshing(false)
+  }, [refetch])
 
   if (loading || error) return <ScreenState loading={loading} error={error} onRetry={refetch} />
 
@@ -47,7 +55,8 @@ export default function ScheduleScreen() {
     scheduled.some(a => a.shiftId?.startDateTime && isSameDay(new Date(a.shiftId.startDateTime), day))
 
   return (
-    <ScrollView style={{ flex: 1, backgroundColor: '#f8fafc' }} showsVerticalScrollIndicator={false}>
+    <ScrollView style={{ flex: 1, backgroundColor: '#f8fafc' }} showsVerticalScrollIndicator={false}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#03397B" colors={['#03397B']} />}>
       {/* Header */}
       <LinearGradient colors={['#003087', '#005EB8']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
         style={{ paddingTop: insets.top + 16, paddingBottom: 24, paddingHorizontal: 20 }}>
@@ -121,31 +130,26 @@ export default function ScheduleScreen() {
                 : 0
 
               return (
-                <View key={app._id} style={{ backgroundColor: '#ffffff', borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9', overflow: 'hidden' }}>
-                  <View style={{ flexDirection: 'row' }}>
-                    <View style={{ width: 4, backgroundColor: TYPE_BAR[type] }} />
-                    <View style={{ flex: 1, padding: 14 }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                        <View>
-                          <Text style={{ color: '#0f172a', fontWeight: '800', fontSize: 16 }}>{ward}</Text>
-                          <Text style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>
-                            {app.shiftId.requiredRole?.replace(/_/g, ' ') ?? ''}
-                          </Text>
-                        </View>
-                        <ShiftTypeBadge type={type} />
-                      </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                          <Text style={{ color: '#94a3b8', fontSize: 11 }}>📅</Text>
-                          <Text style={{ color: '#475569', fontSize: 12, fontWeight: '500' }}>{dateFmt}</Text>
-                        </View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                          <Text style={{ color: '#94a3b8', fontSize: 11 }}>🕐</Text>
-                          <Text style={{ color: '#475569', fontSize: 12, fontWeight: '500' }}>{timeFmt}</Text>
-                        </View>
-                        <Text style={{ color: '#00A39D', fontSize: 12, fontWeight: '700' }}>{hrs}h</Text>
-                      </View>
+                <View key={app._id} style={{ backgroundColor: '#ffffff', borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9', padding: 14 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                    <View>
+                      <Text style={{ color: '#0f172a', fontWeight: '800', fontSize: 16 }}>{ward}</Text>
+                      <Text style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>
+                        {app.shiftId.requiredRole?.replace(/_/g, ' ') ?? ''}
+                      </Text>
                     </View>
+                    <ShiftTypeBadge type={type} />
+                  </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 11 }}>📅</Text>
+                      <Text style={{ color: '#475569', fontSize: 12, fontWeight: '500' }}>{dateFmt}</Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 11 }}>🕐</Text>
+                      <Text style={{ color: '#475569', fontSize: 12, fontWeight: '500' }}>{timeFmt}</Text>
+                    </View>
+                    <Text style={{ color: '#00A39D', fontSize: 12, fontWeight: '700' }}>{hrs}h</Text>
                   </View>
                 </View>
               )

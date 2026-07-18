@@ -1,9 +1,10 @@
-import { NavigationContainer } from '@react-navigation/native'
+import { NavigationContainer, getFocusedRouteNameFromRoute } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { View } from 'react-native'
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { Icon } from '../components/Icon'
 import {
   HomeIcon, SearchIcon, ApplicationsIcon, BellIcon, ProfileIcon, CalendarIcon,
 } from '../components/icons'
@@ -29,7 +30,7 @@ function NotificationsTabIcon({ color }: { color: string }) {
 
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
-      <BellIcon width={ICON_SIZE} height={ICON_SIZE} stroke={color} />
+      <Icon svg={BellIcon} size={ICON_SIZE} color={color} />
       {unread > 0 && (
         <View style={{
           position: 'absolute', top: -3, right: -6,
@@ -78,6 +79,8 @@ export type ShiftsStackParamList = {
 export type HomeStackParamList = {
   HomeMain: undefined
   Compliance: undefined
+  ShiftDetail: { shiftId: string }
+  Notifications: undefined
 }
 
 export type ProfileStackParamList = {
@@ -91,7 +94,6 @@ export type TabParamList = {
   Shifts: undefined
   Applications: undefined
   Schedule: undefined
-  Notifications: undefined
   Profile: undefined
 }
 
@@ -120,6 +122,8 @@ function HomeStackScreen() {
     <HomeStackN.Navigator screenOptions={{ headerShown: false }}>
       <HomeStackN.Screen name="HomeMain" component={HomeScreen} />
       <HomeStackN.Screen name="Compliance" component={ComplianceScreen} />
+      <HomeStackN.Screen name="ShiftDetail" component={ShiftDetailScreen} />
+      <HomeStackN.Screen name="Notifications" component={NotificationsScreen} />
     </HomeStackN.Navigator>
   )
 }
@@ -145,8 +149,28 @@ function ShiftsStackScreen() {
 
 // ── Bottom tab bar ────────────────────────────────────────────
 const ACTIVE_COLOR = '#03397B'
-const INACTIVE_COLOR = '#4B5563'
+const INACTIVE_COLOR = '#94a3b8'
 const ICON_SIZE = 22
+
+function TabIcon({ svg, focused, color, children }: {
+  svg?: React.FC<any>
+  focused: boolean
+  color: string
+  children?: React.ReactNode
+}) {
+  return (
+    <View style={{
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: 48,
+      height: 30,
+      borderRadius: 15,
+      backgroundColor: focused ? 'rgba(3,57,123,0.1)' : 'transparent',
+    }}>
+      {svg ? <Icon svg={svg} size={ICON_SIZE} color={color} /> : children}
+    </View>
+  )
+}
 
 function MainTabs() {
   return (
@@ -165,12 +189,9 @@ function MainTabs() {
           elevation: 0,
         },
         tabBarLabelStyle: {
-          fontSize: 10, fontWeight: '600', marginTop: 3,
+          fontSize: 10, fontWeight: '600', marginTop: 2,
         },
         tabBarIcon: ({ focused, color }) => {
-          if (route.name === 'Notifications') {
-            return <NotificationsTabIcon color={color} />
-          }
           const iconMap: Record<string, React.FC<any>> = {
             Home:         HomeIcon,
             Shifts:       SearchIcon,
@@ -178,20 +199,20 @@ function MainTabs() {
             Schedule:     CalendarIcon,
             Profile:      ProfileIcon,
           }
-          const SvgIcon = iconMap[route.name]
-          return SvgIcon ? (
-            <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-              <SvgIcon width={ICON_SIZE} height={ICON_SIZE} stroke={color} />
-            </View>
-          ) : null
+          const svg = iconMap[route.name]
+          return svg ? <TabIcon svg={svg} focused={focused} color={color} /> : null
         },
       })}
     >
-      <Tab.Screen name="Home" component={HomeStackScreen} options={{ title: 'Home' }} />
+      <Tab.Screen name="Home" component={HomeStackScreen} options={({ route }) => ({
+        title: 'Home',
+        tabBarStyle: ['Notifications', 'ShiftDetail', 'Compliance'].includes(getFocusedRouteNameFromRoute(route) ?? '')
+          ? { display: 'none' }
+          : { backgroundColor: '#ffffff', borderTopColor: '#f1f5f9', borderTopWidth: 1, height: 76, paddingBottom: 14, paddingTop: 10, elevation: 0 },
+      })} />
       <Tab.Screen name="Shifts" component={ShiftsStackScreen} options={{ title: 'Shifts' }} />
       <Tab.Screen name="Applications" component={ApplicationsScreen} options={{ title: 'Applications' }} />
       <Tab.Screen name="Schedule" component={ScheduleScreen} options={{ title: 'Schedule' }} />
-      <Tab.Screen name="Notifications" component={NotificationsScreen} options={{ title: 'Notifications' }} />
       <Tab.Screen name="Profile" component={ProfileStackScreen} options={{ title: 'Profile' }} />
     </Tab.Navigator>
   )

@@ -4,7 +4,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { post, get } from '../lib/api'
 
 const STORAGE_KEY = 'ffame_auth'
-const ONBOARDING_KEY = 'ffame_onboarding_done'
 
 // ── Types ─────────────────────────────────────────────────
 export interface AuthUser {
@@ -47,17 +46,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false)
 
   useEffect(() => {
-    Promise.all([
-      AsyncStorage.getItem(STORAGE_KEY),
-      AsyncStorage.getItem(ONBOARDING_KEY),
-    ]).then(([stored, seen]) => {
+    AsyncStorage.getItem(STORAGE_KEY).then(stored => {
       if (stored) {
         try {
           const parsed: StoredAuth = JSON.parse(stored)
           setUser(parsed.user)
         } catch { /* corrupt storage */ }
       }
-      setHasSeenOnboarding(seen === 'true')
       setLoading(false)
     })
 
@@ -70,7 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function completeOnboarding() {
-    await AsyncStorage.setItem(ONBOARDING_KEY, 'true')
     setHasSeenOnboarding(true)
   }
 

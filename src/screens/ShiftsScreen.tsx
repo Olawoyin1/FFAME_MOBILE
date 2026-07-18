@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { ScrollView, View, TouchableOpacity, TextInput, Alert, StatusBar } from 'react-native'
+import { useState, useCallback } from 'react'
+import { ScrollView, View, TouchableOpacity, TextInput, Alert, StatusBar, RefreshControl } from 'react-native'
+import SuccessModal from '../components/SuccessModal'
 import { Text } from '../components/Text'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -35,9 +36,17 @@ export default function ShiftsScreen({ navigation }: Props) {
   const [typeFilter, setTypeFilter] = useState('All')
   const [search, setSearch] = useState('')
   const [applyingId, setApplyingId] = useState<string | null>(null)
+  const [showSuccess, setShowSuccess] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
 
   const { shifts, loading, error, refetch } = useShifts({ status: 'open', limit: 50 })
   const { applications, refetch: refetchApps } = useApplications({ limit: 100 })
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true)
+    await Promise.all([refetch(), refetchApps()])
+    setRefreshing(false)
+  }, [refetch, refetchApps])
 
   const appliedShiftIds = new Set(
     applications
@@ -52,7 +61,8 @@ export default function ShiftsScreen({ navigation }: Props) {
   const filtered = (shifts || []).filter(s => {
     const type = getShiftType(s.startDateTime)
     return (typeFilter === 'All' || type === typeFilter) &&
-      s.ward.toLowerCase().includes(search.toLowerCase())
+      s.ward.toLowerCase().includes(search.toLowerCase()) &&
+      !appliedShiftIds.has(s._id)
   })
 
   async function handleApply(shiftId: string) {
@@ -60,7 +70,7 @@ export default function ShiftsScreen({ navigation }: Props) {
     setApplyingId(shiftId)
     try {
       await applyToShift(shiftId)
-      Alert.alert('Applied', 'Your application has been submitted.')
+      setShowSuccess(true)
       refetch(); refetchApps()
     } catch (err: any) {
       const msg: string = err.message ?? ''
@@ -74,6 +84,11 @@ export default function ShiftsScreen({ navigation }: Props) {
   return (
     <View style={{ flex: 1, backgroundColor: '#f8fafc' }}>
       <StatusBar barStyle="light-content" backgroundColor="#03397B" />
+
+      <SuccessModal
+        visible={showSuccess}
+        onClose={() => setShowSuccess(false)}
+      />
 
       {/* Header */}
       <View style={{ backgroundColor: '#03397B', paddingTop: insets.top + 16, paddingBottom: 20, paddingHorizontal: 20 }}>
@@ -111,7 +126,8 @@ export default function ShiftsScreen({ navigation }: Props) {
         </ScrollView>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 100 }}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#03397B" colors={['#03397B']} />}>
         <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 6 }}>
           <Text style={{ color: '#94a3b8', fontSize: 13 }}>
             <Text style={{ color: '#03397B', fontWeight: '700' }}>{filtered.length}</Text>
@@ -136,64 +152,69 @@ export default function ShiftsScreen({ navigation }: Props) {
             const type = getShiftType(shift.startDateTime)
             const alreadyApplied = appliedShiftIds.has(shift._id)
             const isApplying = applyingId === shift._id
-            const accentColor = TYPE_COLOR[type] ?? '#03397B'
+            const accentColor = alreadyApplied ? '#16a34a' : (TYPE_COLOR[type] ?? '#03397B')
 
             return (
               <TouchableOpacity key={shift._id} activeOpacity={0.88}
                 onPress={() => navigation.navigate('ShiftDetail', { shiftId: shift._id })}>
-                <View style={{ backgroundColor: '#ffffff', borderWidth: 1, borderColor: alreadyApplied ? '#bbf7d0' : '#f1f5f9' }}>
-                  <View style={{ height: 3, backgroundColor: alreadyApplied ? '#16a34a' : accentColor }} />
-                  <View style={{ padding: 14 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                      <View style={{ flex: 1, marginRight: 12 }}>
-                        <Text style={{ color: '#0f172a', fontWeight: '800', fontSize: 16 }}>{shift.ward}</Text>
-                        <Text style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>
-                          {shift.requiredRole.replace(/_/g, ' ')}
-                        </Text>
-                      </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                        <UsersIcon width={11} height={11} stroke="#4B5563" />
-                        <Text style={{ color: '#94a3b8', fontSize: 11 }}>
-                          {shift.requiredCount - shift.assignedCount} spot{shift.requiredCount - shift.assignedCount !== 1 ? 's' : ''}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
-                      <ClockIcon width={11} height={11} stroke="#4B5563" />
-                      <Text style={{ color: '#64748b', fontSize: 12 }}>
-                        {safeFmt(shift.startDateTime, 'EEE d MMM · HH:mm')} – {safeFmt(shift.endDateTime, 'HH:mm')}
+                <View style={{ backgroundColor: '#ffffff', borderRadius: 20, borderWidth: 1, borderColor: '#f1f5f9', padding: 14 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
+                    <View style={{ flex: 1, marginRight: 12 }}>
+                      <Text style={{ color: '#0f172a', fontWeight: '800', fontSize: 16 }}>{shift.ward}</Text>
+                      <Text style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>
+                        {shift.requiredRole.replace(/_/g, ' ')}
                       </Text>
                     </View>
+                    <View style={{ paddingHorizontal: 10, paddingVertical: 4, backgroundColor: `${accentColor}18`, borderRadius: 8 }}>
+                      <Text style={{ color: accentColor, fontSize: 11, fontWeight: '700' }}>{type}</Text>
+                    </View>
+                  </View>
 
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <View style={{ paddingHorizontal: 8, paddingVertical: 3, backgroundColor: `${accentColor}15` }}>
-                        <Text style={{ color: accentColor, fontSize: 11, fontWeight: '700' }}>{type}</Text>
-                      </View>
-                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 14 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 11 }}>📅</Text>
+                      <Text style={{ color: '#475569', fontSize: 12, fontWeight: '500' }}>
+                        {safeFmt(shift.startDateTime, 'EEE d MMM')}
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 11 }}>🕐</Text>
+                      <Text style={{ color: '#475569', fontSize: 12, fontWeight: '500' }}>
+                        {safeFmt(shift.startDateTime, 'HH:mm')} – {safeFmt(shift.endDateTime, 'HH:mm')}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <UsersIcon width={11} height={11} stroke="#4B5563" />
+                      <Text style={{ color: '#94a3b8', fontSize: 11 }}>
+                        {shift.requiredCount - shift.assignedCount} spot{shift.requiredCount - shift.assignedCount !== 1 ? 's' : ''} left
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <TouchableOpacity
+                        style={{ paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8 }}
+                        onPress={() => navigation.navigate('ShiftDetail', { shiftId: shift._id })}
+                      >
+                        <Text style={{ color: '#475569', fontSize: 12, fontWeight: '600' }}>Details</Text>
+                      </TouchableOpacity>
+                      {alreadyApplied ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#f0fdf4', borderWidth: 1, borderColor: '#bbf7d0', borderRadius: 8 }}>
+                          <CheckCircleIcon width={12} height={12} stroke="#16a34a" />
+                          <Text style={{ color: '#16a34a', fontSize: 12, fontWeight: '700' }}>Applied</Text>
+                        </View>
+                      ) : (
                         <TouchableOpacity
-                          style={{ paddingHorizontal: 12, paddingVertical: 6, borderWidth: 1, borderColor: '#e2e8f0' }}
-                          onPress={() => navigation.navigate('ShiftDetail', { shiftId: shift._id })}
+                          disabled={applyingId !== null}
+                          style={{ paddingHorizontal: 14, paddingVertical: 6, backgroundColor: isApplying ? '#7bafd4' : '#03397B', borderRadius: 8 }}
+                          onPress={() => handleApply(shift._id)}
                         >
-                          <Text style={{ color: '#03397B', fontSize: 12, fontWeight: '700' }}>Details</Text>
+                          <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '700' }}>
+                            {isApplying ? 'Applying…' : 'Apply Now'}
+                          </Text>
                         </TouchableOpacity>
-                        {alreadyApplied ? (
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingHorizontal: 12, paddingVertical: 6, backgroundColor: '#f0fdf4', borderWidth: 1, borderColor: '#bbf7d0' }}>
-                            <CheckCircleIcon width={12} height={12} stroke="#16a34a" />
-                            <Text style={{ color: '#16a34a', fontSize: 12, fontWeight: '700' }}>Applied</Text>
-                          </View>
-                        ) : (
-                          <TouchableOpacity
-                            disabled={applyingId !== null}
-                            style={{ paddingHorizontal: 14, paddingVertical: 6, backgroundColor: isApplying ? '#7bafd4' : '#03397B' }}
-                            onPress={() => handleApply(shift._id)}
-                          >
-                            <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '700' }}>
-                              {isApplying ? 'Applying…' : 'Apply Now'}
-                            </Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
+                      )}
                     </View>
                   </View>
                 </View>
