@@ -56,6 +56,7 @@ import ScheduleScreen from '../screens/ScheduleScreen'
 import NotificationsScreen from '../screens/NotificationsScreen'
 import ProfileScreen from '../screens/ProfileScreen'
 import ComplianceScreen from '../screens/ComplianceScreen'
+import MyPayScreen from '../screens/MyPayScreen'
 
 // ── Param lists ──────────────────────────────────────────────
 export type RootStackParamList = {
@@ -85,6 +86,7 @@ export type HomeStackParamList = {
 export type ProfileStackParamList = {
   ProfileMain: undefined
   Compliance: undefined
+  MyPay: undefined
 }
 
 export type TabParamList = {
@@ -131,6 +133,7 @@ function ProfileStackScreen() {
     <ProfileStackN.Navigator screenOptions={{ headerShown: false }}>
       <ProfileStackN.Screen name="ProfileMain" component={ProfileScreen} />
       <ProfileStackN.Screen name="Compliance" component={ComplianceScreen} />
+      <ProfileStackN.Screen name="MyPay" component={MyPayScreen} />
     </ProfileStackN.Navigator>
   )
 }
