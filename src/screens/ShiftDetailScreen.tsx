@@ -114,7 +114,7 @@ export default function ShiftDetailScreen({ route, navigation }: Props) {
 
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {[
-              { label: 'Pay Rate', value: shift.payRateRef ?? '£22/hr' },
+              { label: 'Pay Band', value: shift.requiredBand ?? 'Not set' },
               { label: 'Duration', value: `${durationHrs}h` },
               { label: 'Spots',    value: `${spotsLeft} left` },
             ].map(item => (

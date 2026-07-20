@@ -23,8 +23,13 @@ export function wardOf(ts: ApiTimesheet): string {
   return typeof ts.shiftId === 'object' ? ts.shiftId.ward : 'Unknown ward'
 }
 
+export function titleOf(ts: ApiTimesheet): string | undefined {
+  return typeof ts.shiftId === 'object' ? ts.shiftId.title : undefined
+}
+
 export function useMyPay() {
   const [timesheets, setTimesheets] = useState<ApiTimesheet[]>([])
+  const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -32,8 +37,9 @@ export function useMyPay() {
     setLoading(true)
     setError(null)
     try {
-      const res = await get<{ success: boolean; data: ApiTimesheet[] }>('/finance/my-pay?limit=100')
+      const res = await get<{ success: boolean; data: ApiTimesheet[]; meta?: { total: number } }>('/finance/my-pay?limit=500')
       setTimesheets(res.data ?? [])
+      setTotal(res.meta?.total ?? res.data?.length ?? 0)
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -42,5 +48,5 @@ export function useMyPay() {
   }, [])
 
   useFocusEffect(useCallback(() => { fetch() }, [fetch]))
-  return { timesheets, loading, error, refetch: fetch }
+  return { timesheets, total, loading, error, refetch: fetch }
 }
