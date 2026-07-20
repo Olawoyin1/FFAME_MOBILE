@@ -131,18 +131,19 @@ export default function ProfileScreen({ navigation }: Props) {
   const [pwError, setPwError] = useState<string | null>(null)
 
   if (!user) return null
+  const currentUser = user
 
-  const initials = (user.name || '').split(' ').filter(Boolean).map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'U'
-  const elig = ELIG_CONFIG[user.eligibilityStatus] ?? ELIG_CONFIG.verification_pending
+  const initials = (currentUser.name || '').split(' ').filter(Boolean).map((n: string) => n[0]).join('').slice(0, 2).toUpperCase() || 'U'
+  const elig = ELIG_CONFIG[currentUser.eligibilityStatus] ?? ELIG_CONFIG.verification_pending
 
   // ── Handlers: Edit Profile ────────────────────────────────
   function openEdit() {
-    const nameParts = (user.name || '').split(' ')
+    const nameParts = (currentUser.name || '').split(' ')
     setFirstName(profile?.firstName ?? nameParts[0] ?? '')
     setLastName(profile?.lastName ?? nameParts.slice(1).join(' ') ?? '')
     setPhone(profile?.phone ?? '')
-    setSpecialty(profile?.specialty ?? user.specialty ?? '')
-    setDepartment(profile?.department ?? user.department ?? '')
+    setSpecialty(profile?.specialty ?? currentUser.specialty ?? '')
+    setDepartment(profile?.department ?? currentUser.department ?? '')
     setSaveMsg(null)
     setSaveError(null)
     setEditing(true)

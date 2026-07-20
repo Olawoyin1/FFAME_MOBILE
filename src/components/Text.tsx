@@ -1,4 +1,4 @@
-import { Text as RNText, type TextProps, type TextStyle } from 'react-native'
+import { Text as RNText, StyleSheet, type TextProps, type TextStyle } from 'react-native'
 
 /**
  * Drop-in replacement for React Native's <Text>.
@@ -25,11 +25,7 @@ const FONT_MAP: Record<string, string> = {
 }
 
 export function Text({ style, ...props }: TextProps) {
-  const flat = (
-    Array.isArray(style)
-      ? Object.assign({}, ...style.filter(Boolean))
-      : { ...(style ?? {}) }
-  ) as TextStyle
+  const flat = (StyleSheet.flatten(style) ?? {}) as TextStyle
 
   const weight = String(flat.fontWeight ?? '400')
   const fontFamily = flat.fontFamily ?? FONT_MAP[weight] ?? 'GTWalsheim-Regular'
