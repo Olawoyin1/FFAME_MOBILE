@@ -10,13 +10,13 @@ export interface ApiShift {
   startDateTime: string
   endDateTime: string
   requiredRole: string
+  requiredBand?: string
   requiredCount: number
   assignedCount: number
   applicationCount: number
   status: string
   skills: string[]
   notes?: string
-  payRateRef?: string
 }
 
 export interface ShiftsState {

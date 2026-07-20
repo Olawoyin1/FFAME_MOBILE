@@ -1,7 +1,7 @@
 import { View, ScrollView, TouchableOpacity, StatusBar } from 'react-native'
 import { Text } from '../components/Text'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { useMyPay, wardOf, type ApiTimesheet, type TimesheetStatus } from '../lib/hooks/useMyPay'
+import { useMyPay, wardOf, titleOf, type ApiTimesheet, type TimesheetStatus } from '../lib/hooks/useMyPay'
 import ScreenState from '../components/ScreenState'
 import { ArrowLeft, Wallet, Clock, Banknote } from 'lucide-react-native'
 import { format } from 'date-fns'
@@ -13,6 +13,11 @@ const STATUS_CONFIG: Record<TimesheetStatus, { label: string; color: string; bg:
   submitted:          { label: 'Awaiting approval', color: '#d97706', bg: '#fef3c7' },
   approved:           { label: 'Approved',           color: '#00A39D', bg: '#ccfbf1' },
   paid:               { label: 'Paid',               color: '#16a34a', bg: '#dcfce7' },
+}
+
+const ATTENDANCE_NOTE: Partial<Record<ApiTimesheet['attendanceStatus'], string>> = {
+  no_show: 'Marked as no-show',
+  partial: 'Partial attendance — pay pro-rated',
 }
 
 function fmtGbp(pence: number) {
@@ -32,7 +37,7 @@ function hoursOf(ts: ApiTimesheet): number {
 
 export default function MyPayScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets()
-  const { timesheets, loading, error, refetch } = useMyPay()
+  const { timesheets, total, loading, error, refetch } = useMyPay()
 
   const totalPaid = timesheets.filter(t => t.status === 'paid').reduce((s, t) => s + t.totalPayPence, 0)
   const pendingCount = timesheets.filter(t => t.status !== 'paid').length
@@ -66,7 +71,7 @@ export default function MyPayScreen({ navigation }: Props) {
                 {pendingCount} shift{pendingCount !== 1 ? 's' : ''} awaiting payment
               </Text>
               <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 12, marginTop: 3 }}>
-                {timesheets.length} shift{timesheets.length !== 1 ? 's' : ''} worked in total
+                {total} shift{total !== 1 ? 's' : ''} worked in total
               </Text>
             </View>
           </View>
@@ -89,7 +94,9 @@ export default function MyPayScreen({ navigation }: Props) {
           ) : (
             <View style={{ backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#f1f5f9' }}>
               <View style={{ paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#f8fafc' }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1 }}>Shift History</Text>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1 }}>
+                  Shift History{timesheets.length < total ? ` (most recent ${timesheets.length} of ${total})` : ''}
+                </Text>
               </View>
               {timesheets.map((ts, i) => {
                 const cfg = STATUS_CONFIG[ts.status]
@@ -111,10 +118,15 @@ export default function MyPayScreen({ navigation }: Props) {
                       <Clock width={15} height={15} color="#4B5563" />
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#0f172a' }}>{wardOf(ts)}</Text>
+                      <Text style={{ fontSize: 14, fontWeight: '600', color: '#0f172a' }}>{titleOf(ts) ?? wardOf(ts)}</Text>
                       <Text style={{ fontSize: 12, color: '#94a3b8', marginTop: 1 }}>
-                        {safeFmt(ts.scheduledStart)} · {hoursOf(ts)}h
+                        {wardOf(ts)} · {safeFmt(ts.scheduledStart)} · {hoursOf(ts)}h
                       </Text>
+                      {ATTENDANCE_NOTE[ts.attendanceStatus] && (
+                        <Text style={{ fontSize: 11, color: '#d97706', marginTop: 2, fontWeight: '600' }}>
+                          {ATTENDANCE_NOTE[ts.attendanceStatus]}
+                        </Text>
+                      )}
                     </View>
                     <View style={{ alignItems: 'flex-end', gap: 4 }}>
                       <Text style={{ fontSize: 14, fontWeight: '800', color: '#0f172a' }}>{fmtGbp(ts.totalPayPence)}</Text>
