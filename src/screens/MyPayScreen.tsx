@@ -133,6 +133,9 @@ export default function MyPayScreen({ navigation }: Props) {
                       <View style={{ backgroundColor: cfg.bg, paddingHorizontal: 8, paddingVertical: 3 }}>
                         <Text style={{ color: cfg.color, fontSize: 10, fontWeight: '700' }}>{cfg.label}</Text>
                       </View>
+                      {ts.payRateCode && (
+                        <Text style={{ fontSize: 9, color: '#cbd5e1', fontWeight: '600' }}>{ts.payRateCode}</Text>
+                      )}
                     </View>
                   </View>
                 )
