@@ -126,6 +126,9 @@ export async function apiRequest<T = unknown>(
   // ── Non-2xx ───────────────────────────────────────────
   if (!res.ok) {
     const errBody = await res.json().catch(() => ({}))
+    if (errBody?.errors && Object.keys(errBody.errors).length > 0) {
+      throw new Error(Object.values(errBody.errors as Record<string, string[]>).flat().join(' '))
+    }
     throw new Error(errBody?.message ?? `Request failed: ${res.status}`)
   }
 
