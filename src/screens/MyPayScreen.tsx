@@ -99,7 +99,10 @@ export default function MyPayScreen({ navigation }: Props) {
                 </Text>
               </View>
               {timesheets.map((ts, i) => {
-                const cfg = STATUS_CONFIG[ts.status]
+                // Defensive fallback — a handful of legacy timesheets in the DB predate
+                // the current 4-value status enum (e.g. an old 'draft' status), so this
+                // must never assume ts.status is one of the known keys.
+                const cfg = STATUS_CONFIG[ts.status] ?? { label: ts.status, color: '#64748b', bg: '#f1f5f9' }
                 return (
                   <View
                     key={ts._id}
