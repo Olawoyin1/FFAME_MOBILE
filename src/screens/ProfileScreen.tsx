@@ -8,10 +8,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useAuth } from '../context/AuthContext'
 import { useProfile } from '../lib/hooks/useProfile'
+import { useProfessionRoles, PROFESSION_SECTORS } from '../lib/hooks/useProfessionRoles'
 import { useVerificationStatus } from '../lib/hooks/useVerificationStatus'
 import { patch, post } from '../lib/api'
 import { UserIcon, MailIcon, PhoneIcon, LocationIcon, ShieldIcon } from '../components/icons'
-import { Briefcase, Building2, LogOut, Hash, RotateCcw, Eye, EyeOff, ChevronRight, Lock, Wallet } from 'lucide-react-native'
+import { Briefcase, Building2, LogOut, Hash, RotateCcw, Eye, EyeOff, ChevronRight, Lock, Wallet, Check } from 'lucide-react-native'
 import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { HomeStackParamList } from '../navigation/AppNavigator'
 
@@ -89,11 +90,57 @@ function EditField({
   )
 }
 
+function InlinePicker({
+  label, value, placeholder, options, open, onToggle, onSelect, disabled,
+}: {
+  label: string
+  value: string
+  placeholder: string
+  options: { value: string; label: string }[]
+  open: boolean
+  onToggle: () => void
+  onSelect: (v: string) => void
+  disabled?: boolean
+}) {
+  const selectedLabel = options.find(o => o.value === value)?.label
+  return (
+    <View style={{ marginBottom: 14 }}>
+      <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 5 }}>
+        {label}
+      </Text>
+      <TouchableOpacity
+        onPress={onToggle}
+        disabled={disabled}
+        style={{ borderWidth: 1, borderColor: '#e2e8f0', backgroundColor: disabled ? '#f8fafc' : '#ffffff', paddingHorizontal: 12, paddingVertical: 11, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}
+      >
+        <Text style={{ fontSize: 14, color: selectedLabel ? '#0f172a' : '#cbd5e1' }}>{selectedLabel ?? placeholder}</Text>
+        <ChevronRight size={14} color="#94a3b8" style={{ transform: [{ rotate: open ? '270deg' : '90deg' }] }} />
+      </TouchableOpacity>
+      {open && (
+        <View style={{ borderWidth: 1, borderTopWidth: 0, borderColor: '#e2e8f0', backgroundColor: '#ffffff', maxHeight: 240 }}>
+          <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={true}>
+            {options.map(o => (
+              <TouchableOpacity
+                key={o.value}
+                onPress={() => onSelect(o.value)}
+                style={{ paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f1f5f9', backgroundColor: o.value === value ? '#eff6ff' : '#ffffff' }}
+              >
+                <Text style={{ fontSize: 14, color: o.value === value ? '#03397B' : '#0f172a', fontWeight: o.value === value ? '700' : '400' }}>{o.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      )}
+    </View>
+  )
+}
+
 type Props = { navigation?: any }
 
 export default function ProfileScreen({ navigation }: Props) {
   const { user, logout } = useAuth()
   const { profile, updateProfile } = useProfile()
+  const { roles: professionRoles } = useProfessionRoles()
   const { verification } = useVerificationStatus(user?._id)
   const insets = useSafeAreaInsets()
 
@@ -107,6 +154,17 @@ export default function ProfileScreen({ navigation }: Props) {
   const [saving, setSaving] = useState(false)
   const [saveMsg, setSaveMsg] = useState<string | null>(null)
   const [saveError, setSaveError] = useState<string | null>(null)
+
+  // ── Profession (Sector -> Role) state ─────────────────────
+  const [professionSector, setProfessionSector] = useState('')
+  const [professionRoleId, setProfessionRoleId] = useState('')
+  const [isTrainee, setIsTrainee] = useState(false)
+  const [sectorPickerOpen, setSectorPickerOpen] = useState(false)
+  const [rolePickerOpen, setRolePickerOpen] = useState(false)
+  const selectedProfessionRole = professionRoles.find(r => r._id === (profile?.professionRoleId))
+  const roleOptionsForSector = professionRoles
+    .filter(r => r.sector === professionSector)
+    .map(r => ({ value: r._id, label: r.roleName }))
 
   // ── Availability state ────────────────────────────────────
   const [editingAvail, setEditingAvail] = useState(false)
@@ -144,6 +202,12 @@ export default function ProfileScreen({ navigation }: Props) {
     setPhone(profile?.phone ?? '')
     setSpecialty(profile?.specialty ?? currentUser.specialty ?? '')
     setDepartment(profile?.department ?? currentUser.department ?? '')
+    const currentRole = professionRoles.find(r => r._id === profile?.professionRoleId)
+    setProfessionSector(currentRole?.sector ?? '')
+    setProfessionRoleId(profile?.professionRoleId ?? '')
+    setIsTrainee(profile?.isTrainee ?? false)
+    setSectorPickerOpen(false)
+    setRolePickerOpen(false)
     setSaveMsg(null)
     setSaveError(null)
     setEditing(true)
@@ -160,7 +224,13 @@ export default function ProfileScreen({ navigation }: Props) {
     setSaveError(null)
     setSaveMsg(null)
     try {
-      await updateProfile({ firstName, lastName, phone, specialty, department })
+      await updateProfile({
+        firstName, lastName, phone, specialty, department,
+        isTrainee,
+        // professionRoleId is optional — an empty string isn't a valid id, so
+        // omit it entirely rather than sending '' (which the backend would try to cast).
+        ...(professionRoleId ? { professionRoleId } : {}),
+      })
       setSaveMsg('Profile updated')
       setTimeout(() => {
         setSaveMsg(null)
@@ -312,7 +382,7 @@ export default function ProfileScreen({ navigation }: Props) {
             <View style={{ flex: 1 }}>
               <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: 20, letterSpacing: -0.3 }}>{user.name}</Text>
               <Text style={{ color: 'rgba(255,255,255,0.55)', fontSize: 13, marginTop: 3 }}>
-                {profile?.specialty ?? user.specialty ?? 'Healthcare Professional'}
+                {selectedProfessionRole?.roleName ?? profile?.specialty ?? user.specialty ?? 'Healthcare Professional'}
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8, backgroundColor: elig.bg, paddingHorizontal: 8, paddingVertical: 4, alignSelf: 'flex-start' }}>
                 <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: elig.color }} />
@@ -331,7 +401,37 @@ export default function ProfileScreen({ navigation }: Props) {
                 <EditField label="First name" value={firstName} onChangeText={setFirstName} />
                 <EditField label="Last name" value={lastName} onChangeText={setLastName} />
                 <EditField label="Phone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-                <EditField label="Specialty" value={specialty} onChangeText={setSpecialty} />
+
+                <InlinePicker
+                  label="Sector"
+                  value={professionSector}
+                  placeholder="Select sector…"
+                  options={PROFESSION_SECTORS.map(s => ({ value: s.value, label: s.label }))}
+                  open={sectorPickerOpen}
+                  onToggle={() => { setSectorPickerOpen(p => !p); setRolePickerOpen(false) }}
+                  onSelect={v => { setProfessionSector(v); setProfessionRoleId(''); setSectorPickerOpen(false) }}
+                />
+                <InlinePicker
+                  label="Profession"
+                  value={professionRoleId}
+                  placeholder={professionSector ? 'Select role…' : 'Choose a sector first'}
+                  options={roleOptionsForSector}
+                  open={rolePickerOpen}
+                  onToggle={() => { setRolePickerOpen(p => !p); setSectorPickerOpen(false) }}
+                  onSelect={v => { setProfessionRoleId(v); setRolePickerOpen(false) }}
+                  disabled={!professionSector}
+                />
+                <TouchableOpacity
+                  onPress={() => setIsTrainee(t => !t)}
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 14 }}
+                >
+                  <View style={{ width: 18, height: 18, borderWidth: 1, borderColor: isTrainee ? '#03397B' : '#cbd5e1', backgroundColor: isTrainee ? '#03397B' : '#ffffff', alignItems: 'center', justifyContent: 'center' }}>
+                    {isTrainee && <Check size={12} color="#ffffff" strokeWidth={3} />}
+                  </View>
+                  <Text style={{ fontSize: 13, color: '#334155' }}>I'm a trainee/apprentice in this role</Text>
+                </TouchableOpacity>
+
+                <EditField label="Specialty (legacy — prefer Profession above)" value={specialty} onChangeText={setSpecialty} />
                 <EditField label="Department" value={department} onChangeText={setDepartment} />
 
                 {saveMsg && (
@@ -369,7 +469,7 @@ export default function ProfileScreen({ navigation }: Props) {
                 <Row Icon={UserIcon}     label="Full name"   value={user.name} />
                 <Row Icon={MailIcon}     label="Email"       value={user.email} />
                 <Row Icon={PhoneIcon}    label="Phone"       value={profile?.phone ?? '—'} />
-                <Row Icon={Briefcase}    label="Specialty"   value={profile?.specialty ?? user.specialty ?? '—'} />
+                <Row Icon={Briefcase}    label="Profession"  value={selectedProfessionRole ? `${selectedProfessionRole.roleName}${profile?.isTrainee ? ' (Trainee)' : ''}` : (profile?.specialty ?? user.specialty ?? '—')} />
                 <Row Icon={Building2}    label="Department"  value={profile?.department ?? user.department ?? '—'} />
                 <Row Icon={LocationIcon} label="Location"    value={profile?.location ?? '—'} last />
                 <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 13, gap: 12 }}>
