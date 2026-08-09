@@ -11,6 +11,7 @@ export interface ApiShift {
   endDateTime: string
   requiredRole: string
   requiredBand?: string
+  requiredProfession?: string
   requiredCount: number
   assignedCount: number
   applicationCount: number

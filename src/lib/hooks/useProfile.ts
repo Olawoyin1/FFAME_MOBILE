@@ -10,6 +10,8 @@ export interface ApiProfile {
   email: string
   phone?: string
   specialty?: string
+  professionRoleId?: string
+  isTrainee?: boolean
   department?: string
   location?: string
   bio?: string

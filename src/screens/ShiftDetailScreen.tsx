@@ -7,6 +7,7 @@ import type { ShiftsStackParamList } from '../navigation/AppNavigator'
 import { get } from '../lib/api'
 import { applyToShift } from '../lib/hooks/useShifts'
 import type { ApiShift } from '../lib/hooks/useShifts'
+import { useProfessionRoles } from '../lib/hooks/useProfessionRoles'
 import type { ApiApplication } from '../lib/hooks/useApplications'
 import ScreenState from '../components/ScreenState'
 import { ArrowLeftIcon, ClockIcon, UsersIcon, CheckCircleIcon } from '../components/icons'
@@ -33,6 +34,7 @@ export default function ShiftDetailScreen({ route, navigation }: Props) {
   const [error,    setError]    = useState<string | null>(null)
   const [applying, setApplying] = useState(false)
   const [applied,  setApplied]  = useState(false)
+  const { roles: professionRoles } = useProfessionRoles()
 
   async function fetchShift() {
     setLoading(true); setError(null)
@@ -64,6 +66,7 @@ export default function ShiftDetailScreen({ route, navigation }: Props) {
   const endFmt      = format(new Date(shift.endDateTime), 'HH:mm')
   const durationHrs = differenceInHours(new Date(shift.endDateTime), new Date(shift.startDateTime))
   const spotsLeft   = shift.requiredCount - shift.assignedCount
+  const professionRole = professionRoles.find(r => r._id === shift.requiredProfession)
 
   async function handleApply() {
     if (applied || applying) return
@@ -138,6 +141,7 @@ export default function ShiftDetailScreen({ route, navigation }: Props) {
               {[
                 { icon: UsersIcon, label: 'Ward',      value: shift.ward },
                 { icon: UsersIcon,     label: 'Role',       value: shift.requiredRole.replace(/_/g, ' ') },
+                ...(professionRole ? [{ icon: UsersIcon, label: 'Profession', value: professionRole.roleName }] : []),
                 { icon: ClockIcon,     label: 'Start',      value: format(new Date(shift.startDateTime), 'EEE d MMM yyyy · HH:mm') },
                 { icon: ClockIcon,     label: 'End',        value: format(new Date(shift.endDateTime), 'EEE d MMM yyyy · HH:mm') },
                 { icon: UsersIcon,     label: 'Spots left', value: `${spotsLeft} of ${shift.requiredCount}` },

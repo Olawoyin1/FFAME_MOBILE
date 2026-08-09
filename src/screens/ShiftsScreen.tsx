@@ -7,6 +7,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack'
 import type { ShiftsStackParamList } from '../navigation/AppNavigator'
 import { useShifts, applyToShift } from '../lib/hooks/useShifts'
 import { useApplications } from '../lib/hooks/useApplications'
+import { useProfessionRoles } from '../lib/hooks/useProfessionRoles'
 import ScreenState from '../components/ScreenState'
 import { ShiftsSkeleton } from '../components/Skeleton'
 import { SearchIcon, ClockIcon, UsersIcon, CheckCircleIcon } from '../components/icons'
@@ -38,6 +39,7 @@ export default function ShiftsScreen({ navigation }: Props) {
   const [applyingId, setApplyingId] = useState<string | null>(null)
   const [showSuccess, setShowSuccess] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const { roles: professionRoles } = useProfessionRoles()
 
   const { shifts, loading, error, refetch } = useShifts({ status: 'open', limit: 50 })
   const { applications, refetch: refetchApps } = useApplications({ limit: 100 })
@@ -153,6 +155,7 @@ export default function ShiftsScreen({ navigation }: Props) {
             const alreadyApplied = appliedShiftIds.has(shift._id)
             const isApplying = applyingId === shift._id
             const accentColor = alreadyApplied ? '#16a34a' : (TYPE_COLOR[type] ?? '#03397B')
+            const professionRole = professionRoles.find(r => r._id === shift.requiredProfession)
 
             return (
               <TouchableOpacity key={shift._id} activeOpacity={0.88}
@@ -162,7 +165,7 @@ export default function ShiftsScreen({ navigation }: Props) {
                     <View style={{ flex: 1, marginRight: 12 }}>
                       <Text style={{ color: '#0f172a', fontWeight: '800', fontSize: 16 }}>{shift.ward}</Text>
                       <Text style={{ color: '#64748b', fontSize: 12, marginTop: 2 }}>
-                        {shift.requiredRole.replace(/_/g, ' ')}
+                        {professionRole?.roleName ?? shift.requiredRole.replace(/_/g, ' ')}
                       </Text>
                     </View>
                     <View style={{ paddingHorizontal: 10, paddingVertical: 4, backgroundColor: `${accentColor}18`, borderRadius: 8 }}>
